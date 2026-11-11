@@ -1,0 +1,21 @@
+# Phase 1 permission spike. Temporary: replaced by the real API once the
+# spike answers which token and policies B2B Organizations accepts.
+# Every operation refuses to run outside the b2bdev workspace and without an
+# admin session (see node/resolvers/spike.ts).
+#
+# @auth uses VTEX's documented example resource (VTEX IO, workspace
+# read-write), which only admins who can develop apps hold. The real app
+# defines its own reviewer resource instead.
+
+type Query {
+  spikeListOrganizationRequests(tokenMode: TokenMode!): SpikeResult
+    @auth(scope: PRIVATE, productCode: "66", resourceCode: "workspace-read-write")
+    @cacheControl(scope: PRIVATE)
+}
+
+type Mutation {
+  spikeCreateOrganizationRequest(tokenMode: TokenMode!): SpikeResult
+    @auth(scope: PRIVATE, productCode: "66", resourceCode: "workspace-read-write")
+  spikeDeclineOrganizationRequest(id: ID!, tokenMode: TokenMode!): SpikeResult
+    @auth(scope: PRIVATE, productCode: "66", resourceCode: "workspace-read-write")
+}

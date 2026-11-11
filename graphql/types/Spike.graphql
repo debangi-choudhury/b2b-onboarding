@@ -1,0 +1,15 @@
+"Which credentials the app sends to vtex.b2b-organizations-graphql"
+enum TokenMode {
+  "The admin's own session token (ctx.vtex.adminUserAuthToken)"
+  ADMIN
+  "The app's own token only"
+  APP
+}
+
+type SpikeResult {
+  ok: Boolean!
+  tokenMode: TokenMode!
+  status: Int
+  message: String
+  data: String
+}

@@ -1,0 +1,20 @@
+{
+  "vendor": "logixalpartnerus",
+  "name": "b2b-onboarding",
+  "version": "0.0.1",
+  "title": "B2B Onboarding",
+  "description": "Business applications with document upload, verification and staged approval for B2B Organizations",
+  "builders": {
+    "node": "7.x",
+    "graphql": "2.x"
+  },
+  "dependencies": {
+    "vtex.b2b-organizations-graphql": "2.x"
+  },
+  "policies": [
+    {
+      "name": "vtex.b2b-organizations-graphql:resolve-graphql"
+    }
+  ],
+  "$schema": "https://raw.githubusercontent.com/vtex/node-vtex-api/master/gen/manifest.schema"
+}
