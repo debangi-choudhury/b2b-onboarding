@@ -3,7 +3,7 @@ import { useIntl } from 'react-intl'
 import { useCssHandles } from 'vtex.css-handles'
 
 import type { DocumentKind, ErrorCode, FieldSpec } from '../utils/fields'
-import { ACCEPTED_FILES } from '../utils/fields'
+import { ACCEPTED_FILES, formatSize } from '../utils/fields'
 import {
   documentLabels,
   errorLabels,
@@ -119,7 +119,7 @@ export function FileField({
       />
       {file && !error && (
         <p className={`${handles.fileName} mt2 mb0 t-small c-muted-1`}>
-          {file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB
+          {file.name} · {formatSize(file.size)}
         </p>
       )}
       {error && (

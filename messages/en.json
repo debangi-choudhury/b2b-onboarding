@@ -97,6 +97,7 @@
   "admin/b2b-onboarding.section.verification": "Eligibility check",
   "admin/b2b-onboarding.section.history": "Audit trail",
   "admin/b2b-onboarding.section.current-step": "Current step",
+  "admin/b2b-onboarding.field.legal-name": "Legal name",
   "admin/b2b-onboarding.field.trade-name": "Trade name",
   "admin/b2b-onboarding.field.registration": "Registration number",
   "admin/b2b-onboarding.field.tax-id": "Tax ID",

@@ -26,6 +26,7 @@ import DECIDE_STAGE from './graphql/decideStage.graphql'
 import DOCUMENT from './graphql/document.graphql'
 import REVIEW_DOCUMENT from './graphql/reviewDocument.graphql'
 import RUN_VERIFICATION from './graphql/runVerification.graphql'
+import { formatSize } from './utils/fields'
 
 type Message = { id: string; defaultMessage: string }
 
@@ -421,7 +422,7 @@ function ReviewDetail({ params }: { params: { id: string } }) {
         <div>
           <h3 className="t-heading-5 mt0">{intl.formatMessage(m.company)}</h3>
           <Field
-            label={intl.formatMessage(m.colCompany)}
+            label={intl.formatMessage(m.legalName)}
             value={app.companyName}
           />
           <Field
@@ -490,8 +491,7 @@ function ReviewDetail({ params }: { params: { id: string } }) {
                 </Tag>
               </div>
               <div className="t-small c-muted-1">
-                {doc.fileName} · {(doc.size / 1024).toFixed(0)} KB ·{' '}
-                {date(doc.uploadedAt)}
+                {doc.fileName} · {formatSize(doc.size)} · {date(doc.uploadedAt)}
               </div>
               {doc.lastReview && (
                 <div className="t-mini c-muted-1 mt1">

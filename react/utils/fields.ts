@@ -162,6 +162,15 @@ export const MAX_FILE_BYTES = 5 * 1024 * 1024
 export const ACCEPTED_FILES =
   '.pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg'
 
+/** 187 B -> "1 KB", 48 KB -> "48 KB", 2.4 MB -> "2.4 MB" */
+export function formatSize(bytes: number): string {
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`
+  }
+
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
 export function checkField(spec: FieldSpec, raw: string): ErrorCode | null {
   const value = raw.trim()
 

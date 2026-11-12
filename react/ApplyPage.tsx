@@ -204,7 +204,11 @@ function ApplyPage() {
               intl.formatMessage(messages.address),
               null,
               <>
-                {renderFields(ADDRESS_FIELDS)}
+                {renderFields(
+                  ADDRESS_FIELDS.filter(
+                    (f) => f.name !== 'address.receiverName'
+                  )
+                )}
                 <div className="mb5">
                   <label
                     htmlFor="b2b-onboarding-address-country"
@@ -230,6 +234,11 @@ function ApplyPage() {
                     ))}
                   </select>
                 </div>
+                {renderFields(
+                  ADDRESS_FIELDS.filter(
+                    (f) => f.name === 'address.receiverName'
+                  )
+                )}
               </>
             )}
             {section(

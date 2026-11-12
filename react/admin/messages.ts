@@ -131,6 +131,10 @@ export const adminMessages = defineMessages({
     id: 'admin/b2b-onboarding.section.current-step',
     defaultMessage: 'Current step',
   },
+  legalName: {
+    id: 'admin/b2b-onboarding.field.legal-name',
+    defaultMessage: 'Legal name',
+  },
   tradeName: {
     id: 'admin/b2b-onboarding.field.trade-name',
     defaultMessage: 'Trade name',

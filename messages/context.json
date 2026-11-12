@@ -97,6 +97,7 @@
   "admin/b2b-onboarding.section.verification": "Shown to store admins on the B2B onboarding review screens, which list business applications and let reviewers pass or reject each stage",
   "admin/b2b-onboarding.section.history": "Shown to store admins on the B2B onboarding review screens, which list business applications and let reviewers pass or reject each stage",
   "admin/b2b-onboarding.section.current-step": "Shown to store admins on the B2B onboarding review screens, which list business applications and let reviewers pass or reject each stage",
+  "admin/b2b-onboarding.field.legal-name": "Shown to store admins on the B2B onboarding review screens, which list business applications and let reviewers pass or reject each stage",
   "admin/b2b-onboarding.field.trade-name": "Shown to store admins on the B2B onboarding review screens, which list business applications and let reviewers pass or reject each stage",
   "admin/b2b-onboarding.field.registration": "Shown to store admins on the B2B onboarding review screens, which list business applications and let reviewers pass or reject each stage",
   "admin/b2b-onboarding.field.tax-id": "Shown to store admins on the B2B onboarding review screens, which list business applications and let reviewers pass or reject each stage",
