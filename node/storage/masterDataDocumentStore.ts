@@ -4,12 +4,17 @@ import type { MasterDataFiles } from '../clients/masterDataFiles'
 import type { DocumentStore } from './documentStore'
 
 /**
- * Master Data v1 entity "OB" (B2B onboarding documents), created in the
- * legacy Master Data screen because v1 entities can't be created through the
- * API. Fields: applicationId, kind, originalName, contentType, size and file
- * (type File). Nothing is readable or writable without credentials.
+ * Master Data v1 entity "BD", created in the legacy Master Data screen for the
+ * Phase 0 attachment test (v1 entities can't be created through the API).
+ * Fields: applicationId (Varchar 100), kind (Varchar 50) and file (File).
+ * Nothing is readable or writable without credentials.
+ *
+ * A dedicated entity "OB" was planned, but the legacy screen failed to save it
+ * on 2026-11-12, so the user chose to reuse BD. Its display name still says
+ * "B2B-C11 TEST attachment spike". The file's name, type and size are kept in
+ * the application's own record (DocumentRef), not here.
  */
-export const DOCUMENT_ENTITY = 'OB'
+export const DOCUMENT_ENTITY = 'BD'
 const FILE_FIELD = 'file'
 
 /**
@@ -27,9 +32,6 @@ export class MasterDataDocumentStore implements DocumentStore {
     const id = await this.files.createDocument(DOCUMENT_ENTITY, {
       applicationId: input.applicationId,
       kind: input.kind,
-      originalName: input.fileName,
-      contentType: input.type.contentType,
-      size: input.data.length,
     })
 
     try {
