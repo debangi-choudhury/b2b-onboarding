@@ -6,10 +6,16 @@
   "description": "Business applications with document upload, verification and staged approval for B2B Organizations",
   "builders": {
     "node": "7.x",
-    "graphql": "2.x"
+    "graphql": "2.x",
+    "react": "3.x",
+    "store": "0.x",
+    "messages": "1.x"
   },
   "dependencies": {
-    "vtex.b2b-organizations-graphql": "2.x"
+    "vtex.b2b-organizations-graphql": "2.x",
+    "vtex.store": "2.x",
+    "vtex.css-handles": "0.x",
+    "vtex.render-runtime": "8.x"
   },
   "policies": [
     {

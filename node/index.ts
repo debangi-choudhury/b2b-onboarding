@@ -4,15 +4,15 @@ import type {
   RecorderState,
   ServiceContext,
 } from '@vtex/api'
-import { Service } from '@vtex/api'
+import { method, Service } from '@vtex/api'
 
 import { Clients } from './clients'
-import { applicantMutations, applicantQueries } from './resolvers/applicant'
 import {
   applicationFields,
   reviewMutations,
   reviewQueries,
 } from './resolvers/review'
+import { apply, status } from './routes/applicant'
 
 const clients: ClientsConfig<Clients> = {
   implementation: Clients,
@@ -30,17 +30,15 @@ declare global {
 
 export default new Service<Clients, RecorderState, ParamsContext>({
   clients,
+  routes: {
+    apply: method({ POST: apply }),
+    status: method({ POST: status }),
+  },
   graphql: {
     resolvers: {
       Application: applicationFields,
-      Query: {
-        ...applicantQueries,
-        ...reviewQueries,
-      },
-      Mutation: {
-        ...applicantMutations,
-        ...reviewMutations,
-      },
+      Query: reviewQueries,
+      Mutation: reviewMutations,
     },
   },
 })

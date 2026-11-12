@@ -1,0 +1,8 @@
+{
+  "store.custom#b2b-onboarding-apply": {
+    "path": "/business-application"
+  },
+  "store.custom#b2b-onboarding-status": {
+    "path": "/business-application/status"
+  }
+}

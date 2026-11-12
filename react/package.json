@@ -1,0 +1,19 @@
+{
+  "name": "b2b-onboarding",
+  "version": "0.1.0",
+  "scripts": {
+    "lint": "tsc --noEmit --pretty"
+  },
+  "dependencies": {
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0",
+    "react-intl": "^3.12.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^25.1.4",
+    "@types/node": "^13.9.8",
+    "@types/react": "^16.9.31",
+    "@vtex/tsconfig": "^0.4.4",
+    "typescript": "3.9.7"
+  }
+}

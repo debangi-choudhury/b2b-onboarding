@@ -4,7 +4,7 @@
   "license": "UNLICENSED",
   "version": "0.0.0",
   "scripts": {
-    "lint": "eslint --ext .ts,.tsx node",
+    "lint": "eslint --ext .ts,.tsx node react",
     "test": "jest"
   },
   "devDependencies": {

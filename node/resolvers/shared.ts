@@ -4,6 +4,8 @@ import { resolveStages } from '../domain/stages'
 import type { StageConfig } from '../domain/stages'
 import type { Application, ApplicationEvent } from '../domain/types'
 import { WorkflowError } from '../domain/workflow'
+import type { DocumentStore } from '../storage/documentStore'
+import { MasterDataDocumentStore } from '../storage/masterDataDocumentStore'
 import { ApplicationRepository } from '../storage/repository'
 import { MockRegistryVerifier } from '../verification/mockRegistry'
 import type { EligibilityVerifier } from '../verification/types'
@@ -15,6 +17,11 @@ export function repository(ctx: Context) {
   return new ApplicationRepository(ctx.clients.masterdata, (message) =>
     ctx.vtex.logger.warn({ message })
   )
+}
+
+// Swap this for private object storage in a client project.
+export function documentStore(ctx: Context): DocumentStore {
+  return new MasterDataDocumentStore(ctx.clients.masterDataFiles)
 }
 
 export async function stageConfig(ctx: Context): Promise<StageConfig> {
