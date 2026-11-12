@@ -22,7 +22,7 @@ const BADGE = {
   REJECTED: 'bg-danger--faded',
 }
 
-function ApplicationStatus() {
+function StatusPage() {
   const intl = useIntl()
   const handles = useCssHandles(CSS_HANDLES)
   const { rootPath = '', query } = useRuntime()
@@ -188,4 +188,4 @@ function ApplicationStatus() {
   )
 }
 
-export default ApplicationStatus
+export default StatusPage

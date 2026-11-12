@@ -42,7 +42,7 @@ const ALL_FIELDS = [...COMPANY_FIELDS, ...CONTACT_FIELDS, ...ADDRESS_FIELDS]
 
 type Errors = Partial<Record<FieldName | DocumentKind, ErrorCode>>
 
-function ApplicationForm() {
+function ApplyPage() {
   const intl = useIntl()
   const handles = useCssHandles(CSS_HANDLES)
   const { rootPath = '' } = useRuntime()
@@ -295,4 +295,4 @@ function ApplicationForm() {
   )
 }
 
-export default ApplicationForm
+export default ApplyPage

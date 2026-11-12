@@ -1,8 +1,8 @@
 {
   "b2b-onboarding-application-form": {
-    "component": "ApplicationForm"
+    "component": "ApplyPage"
   },
   "b2b-onboarding-application-status": {
-    "component": "ApplicationStatus"
+    "component": "StatusPage"
   }
 }
