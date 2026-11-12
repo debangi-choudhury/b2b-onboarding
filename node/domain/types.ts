@@ -61,6 +61,7 @@ export interface DocumentRef {
 }
 
 export interface Application extends ApplicationInput {
+  /** The Master Data document ID, which is the same as the reference */
   id: string
   /** Human-friendly reference the applicant sees, such as APP-7K2M9QXD */
   reference: string

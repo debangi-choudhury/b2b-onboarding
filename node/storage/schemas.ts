@@ -1,8 +1,15 @@
 /**
  * Master Data v2 schemas, applied by the app itself (see repository.ts)
  * rather than by the masterdata builder, which creates a new schema on every
- * link and install, with a limit of 60 per entity. Bump the schema name when
- * a change isn't backwards compatible.
+ * link and install, with a limit of 60 per entity.
+ *
+ * Change these rarely and deliberately. After any schema change, Master Data
+ * re-indexes the entity and refuses further schema changes for about 12 hours
+ * (HTTP 423). The app only writes a schema when its title differs from the
+ * stored one, so change the title (rev N) whenever you change a schema.
+ *
+ * Because of "required", documents are always written whole (PUT), never
+ * patched: Master Data checks a PATCH body against "required" on its own.
  */
 
 export const APPLICATION_ENTITY = 'b2b_onboarding_application'

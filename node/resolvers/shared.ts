@@ -12,7 +12,9 @@ import type { EligibilityVerifier } from '../verification/types'
 export const verifier: EligibilityVerifier = new MockRegistryVerifier()
 
 export function repository(ctx: Context) {
-  return new ApplicationRepository(ctx.clients.masterdata)
+  return new ApplicationRepository(ctx.clients.masterdata, (message) =>
+    ctx.vtex.logger.warn({ message })
+  )
 }
 
 export async function stageConfig(ctx: Context): Promise<StageConfig> {
@@ -58,9 +60,13 @@ export async function applyTransition(
   }
 ): Promise<Application> {
   const repo = repository(ctx)
+  const updated = { ...app, ...transition.patch }
 
-  await repo.update(app.id, transition.patch)
+  if (Object.keys(transition.patch).length > 0) {
+    await repo.save(updated)
+  }
+
   await repo.addEvents(app.id, transition.events)
 
-  return { ...app, ...transition.patch }
+  return updated
 }

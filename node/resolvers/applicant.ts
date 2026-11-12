@@ -43,28 +43,35 @@ export const applicantMutations = {
     }
 
     const { stages } = await stageConfig(ctx)
-    const reference = newReference()
+    const repo = repository(ctx)
     const token = newStatusToken()
     const now = new Date()
 
-    const { application, event } = newApplication(
-      result.value,
-      stages,
-      { reference, tokenHash: hashToken(token) },
-      now
-    )
+    // A reference clash is about 1 in a trillion; try a few anyway.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const reference = newReference()
+      const { application, event } = newApplication(
+        result.value,
+        stages,
+        { reference, tokenHash: hashToken(token) },
+        now
+      )
 
-    const repo = repository(ctx)
-    const id = await repo.create(application)
+      // eslint-disable-next-line no-await-in-loop
+      if (await repo.create(application)) {
+        // eslint-disable-next-line no-await-in-loop
+        await repo.addEvents(reference, [event])
 
-    await repo.addEvents(id, [event])
-
-    // The token is returned once and never stored. The applicant keeps it.
-    return {
-      reference,
-      statusToken: token,
-      submittedAt: application.submittedAt,
+        // The token is returned once and never stored. The applicant keeps it.
+        return {
+          reference,
+          statusToken: token,
+          submittedAt: application.submittedAt,
+        }
+      }
     }
+
+    throw new Error('Could not allocate an application reference')
   },
 }
 
@@ -93,7 +100,7 @@ export const applicantQueries = {
       return notFound()
     }
 
-    const app = await repository(ctx).findByReference(normalized)
+    const app = await repository(ctx).get(normalized)
 
     if (!app || !tokenMatches(token, app.tokenHash)) {
       return notFound()

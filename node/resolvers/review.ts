@@ -40,8 +40,8 @@ async function approve(ctx: Context, app: Application, note: unknown) {
 
     if (!requestId) {
       requestId = await b2b.createRequest(toOrganizationInput(app))
-      await repo.update(app.id, { organizationRequestId: requestId })
       app = { ...app, organizationRequestId: requestId }
+      await repo.save(app)
     }
 
     if ((await b2b.requestStatus(requestId)) !== 'approved') {

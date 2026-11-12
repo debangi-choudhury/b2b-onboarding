@@ -32,26 +32,23 @@ const EVENT_FIELDS = ['id', ...Object.keys(EVENT_SCHEMA.properties)]
 
 export const MAX_PAGE_SIZE = 50
 
-// Applied once per process. The PUT is idempotent, so several replicas
-// applying it at the same time is harmless.
+// Checked once per process.
 let schemasReady: Promise<void> | null = null
 
+const statusOf = (e: unknown) =>
+  (e as { response?: { status?: number } }).response?.status
+
 export class ApplicationRepository {
-  constructor(private readonly md: MasterData) {}
+  constructor(
+    private readonly md: MasterData,
+    private readonly warn: (message: string) => void = () => {}
+  ) {}
 
   public ensureSchemas(): Promise<void> {
     if (!schemasReady) {
       schemasReady = Promise.all([
-        this.md.createOrUpdateSchema({
-          dataEntity: APPLICATION_ENTITY,
-          schemaName: SCHEMA,
-          schemaBody: APPLICATION_SCHEMA,
-        }),
-        this.md.createOrUpdateSchema({
-          dataEntity: EVENT_ENTITY,
-          schemaName: SCHEMA,
-          schemaBody: EVENT_SCHEMA,
-        }),
+        this.ensureSchema(APPLICATION_ENTITY, APPLICATION_SCHEMA),
+        this.ensureSchema(EVENT_ENTITY, EVENT_SCHEMA),
       ])
         .then(() => undefined)
         .catch((e) => {
@@ -63,49 +60,89 @@ export class ApplicationRepository {
     return schemasReady
   }
 
-  public async create(application: Omit<Application, 'id'>): Promise<string> {
-    await this.ensureSchemas()
-
-    const { DocumentId } = await this.md.createDocument({
-      dataEntity: APPLICATION_ENTITY,
-      schema: SCHEMA,
-      fields: application,
-    })
-
-    return DocumentId
-  }
-
-  public async get(id: string): Promise<Application | null> {
-    await this.ensureSchemas()
+  /**
+   * Writes the schema only when the stored one has a different title, because
+   * every schema write locks the entity's schema for about 12 hours. If the
+   * entity is locked but a schema exists, carry on with it.
+   */
+  private async ensureSchema(dataEntity: string, body: { title: string }) {
+    let stored: { title?: string } | null = null
 
     try {
-      return await this.md.getDocument<Application>({
-        dataEntity: APPLICATION_ENTITY,
-        id,
-        fields: APPLICATION_FIELDS,
+      stored = await this.md.getSchema<{ title?: string }>({
+        dataEntity,
+        schema: SCHEMA,
       })
     } catch (e) {
-      if ((e as { response?: { status?: number } }).response?.status === 404) {
-        return null
+      if (statusOf(e) !== 404) {
+        throw e
+      }
+    }
+
+    if (stored?.title === body.title) {
+      return
+    }
+
+    try {
+      await this.md.createOrUpdateSchema({
+        dataEntity,
+        schemaName: SCHEMA,
+        schemaBody: body,
+      })
+    } catch (e) {
+      if (statusOf(e) === 423 && stored) {
+        this.warn(
+          `Schema ${dataEntity}/${SCHEMA} is locked by a recent change; using the stored version until the lock ends`
+        )
+
+        return
       }
 
       throw e
     }
   }
 
-  public async findByReference(reference: string): Promise<Application | null> {
+  /**
+   * Stores a new application under its reference as the document ID. Reads by
+   * ID are immediate, while search only finds new documents after a short
+   * indexing delay, so the applicant can check their status straight away.
+   * Returns false if the reference is already taken.
+   */
+  public async create(application: Omit<Application, 'id'>): Promise<boolean> {
     await this.ensureSchemas()
 
-    // Callers check the reference's format first, so it is safe in a filter.
-    const [found] = await this.md.searchDocuments<Application>({
+    if (await this.get(application.reference)) {
+      return false
+    }
+
+    await this.md.createOrUpdateEntireDocument({
       dataEntity: APPLICATION_ENTITY,
       schema: SCHEMA,
-      fields: APPLICATION_FIELDS,
-      where: `reference=${reference}`,
-      pagination: { page: 1, pageSize: 1 },
+      id: application.reference,
+      fields: application,
     })
 
-    return found ?? null
+    return true
+  }
+
+  public async get(id: string): Promise<Application | null> {
+    await this.ensureSchemas()
+
+    try {
+      const found = await this.md.getDocument<Application | null>({
+        dataEntity: APPLICATION_ENTITY,
+        id,
+        fields: APPLICATION_FIELDS,
+      })
+
+      return found?.id ? found : null
+    } catch (e) {
+      if (statusOf(e) === 404) {
+        return null
+      }
+
+      throw e
+    }
   }
 
   public async list(filter: {
@@ -128,16 +165,15 @@ export class ApplicationRepository {
     })
   }
 
-  public async update(id: string, patch: Partial<Application>): Promise<void> {
-    if (Object.keys(patch).length === 0) {
-      return
-    }
+  /** Writes the whole document. See schemas.ts for why it isn't a PATCH. */
+  public async save(application: Application): Promise<void> {
+    const { id, ...fields } = application
 
-    await this.md.updatePartialDocument({
+    await this.md.updateEntireDocument({
       dataEntity: APPLICATION_ENTITY,
       schema: SCHEMA,
       id,
-      fields: patch,
+      fields,
     })
   }
 
