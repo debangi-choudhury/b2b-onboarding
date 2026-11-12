@@ -7,11 +7,6 @@
 # reviewer's own rights in B2B Organizations, which this matches.
 
 type Query {
-  "TEMPORARY in 0.1.1: reports which outbound calls the installed app is refused"
-  onboardingDiagnostics: String
-    @auth(scope: PRIVATE, productCode: "97", resourceCode: "buyer_organization_view")
-    @cacheControl(scope: PRIVATE)
-
   onboardingApplications(
     status: ApplicationStatus
     page: Int = 1
