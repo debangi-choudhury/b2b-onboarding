@@ -7,6 +7,11 @@
 # reviewer's own rights in B2B Organizations, which this matches.
 
 type Query {
+  "TEMPORARY in 0.1.1: reports which outbound calls the installed app is refused"
+  onboardingDiagnostics: String
+    @auth(scope: PRIVATE, productCode: "97", resourceCode: "buyer_organization_view")
+    @cacheControl(scope: PRIVATE)
+
   onboardingApplications(
     status: ApplicationStatus
     page: Int = 1
@@ -26,13 +31,6 @@ type Query {
 
   "A document's file for the review screen, base64 encoded (at most 5 MB)"
   onboardingDocument(id: ID!, kind: String!): DocumentFile
-    @auth(scope: PRIVATE, productCode: "97", resourceCode: "buyer_organization_view")
-    @cacheControl(scope: PRIVATE)
-}
-
-extend type Query {
-  "TEMPORARY in 0.1.1: reports which outbound calls the installed app is refused"
-  onboardingDiagnostics: String
     @auth(scope: PRIVATE, productCode: "97", resourceCode: "buyer_organization_view")
     @cacheControl(scope: PRIVATE)
 }
