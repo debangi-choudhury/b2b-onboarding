@@ -1,7 +1,7 @@
 {
   "vendor": "logixalpartnerus",
   "name": "b2b-onboarding",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "title": "B2B Onboarding",
   "description": "Business applications with document upload, verification and staged approval for B2B Organizations",
   "builders": {
@@ -14,7 +14,52 @@
   "policies": [
     {
       "name": "vtex.b2b-organizations-graphql:resolve-graphql"
+    },
+    {
+      "name": "ADMIN_DS"
+    },
+    {
+      "name": "outbound-access",
+      "attrs": {
+        "host": "api.vtex.com",
+        "path": "/api/*"
+      }
     }
   ],
+  "settingsSchema": {
+    "title": "B2B Onboarding",
+    "type": "object",
+    "properties": {
+      "stages": {
+        "title": "Approval stages",
+        "description": "Stages each new application goes through, in order. Leave empty for the default: Document review, Compliance check, Final approval. The last stage must be of type APPROVAL, and at most one stage can be VERIFICATION. Applications already submitted keep their stages.",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "id": {
+              "title": "ID (optional)",
+              "description": "Lowercase letters, digits and hyphens. Made from the label when empty.",
+              "type": "string"
+            },
+            "type": {
+              "title": "Type",
+              "type": "string",
+              "enum": [
+                "REVIEW",
+                "VERIFICATION",
+                "APPROVAL"
+              ],
+              "default": "REVIEW"
+            }
+          }
+        }
+      }
+    }
+  },
   "$schema": "https://raw.githubusercontent.com/vtex/node-vtex-api/master/gen/manifest.schema"
 }

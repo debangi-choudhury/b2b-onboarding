@@ -7,31 +7,39 @@ import type {
 import { Service } from '@vtex/api'
 
 import { Clients } from './clients'
-import { spikeMutations, spikeQueries } from './resolvers/spike'
+import { applicantMutations, applicantQueries } from './resolvers/applicant'
+import {
+  applicationFields,
+  reviewMutations,
+  reviewQueries,
+} from './resolvers/review'
 
 const clients: ClientsConfig<Clients> = {
   implementation: Clients,
   options: {
     default: {
-      retries: 0,
+      retries: 1,
       timeout: 15000,
     },
   },
 }
 
 declare global {
-  type Context = ServiceContext<Clients, RecorderState>
+  type Context = ServiceContext<Clients>
 }
 
 export default new Service<Clients, RecorderState, ParamsContext>({
   clients,
   graphql: {
     resolvers: {
+      Application: applicationFields,
       Query: {
-        ...spikeQueries,
+        ...applicantQueries,
+        ...reviewQueries,
       },
       Mutation: {
-        ...spikeMutations,
+        ...applicantMutations,
+        ...reviewMutations,
       },
     },
   },
