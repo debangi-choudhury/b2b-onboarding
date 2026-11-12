@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-12
+
+### Changed
+
+- The application form is a guided five-step flow: Company, Administrator, Address, Documents and Review. It has a progress stepper, a check per step, drag-and-drop document upload with a Replace option, a review step with Edit links, and "What happens next" and "Your application so far" panels beside the form.
+- The receipt and the status page match the new look.
+
 ## [0.1.4] - 2026-11-12
 
 ### Removed
