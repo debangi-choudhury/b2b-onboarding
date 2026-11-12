@@ -30,6 +30,13 @@ type Query {
     @cacheControl(scope: PRIVATE)
 }
 
+extend type Query {
+  "TEMPORARY in 0.1.1: reports which outbound calls the installed app is refused"
+  onboardingDiagnostics: String
+    @auth(scope: PRIVATE, productCode: "97", resourceCode: "buyer_organization_view")
+    @cacheControl(scope: PRIVATE)
+}
+
 type Mutation {
   "Accepts or rejects one document. Only on a REVIEW stage; every decision is kept."
   reviewDocument(

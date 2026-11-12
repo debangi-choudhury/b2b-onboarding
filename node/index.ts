@@ -13,6 +13,7 @@ import {
   reviewMutations,
   reviewQueries,
 } from './resolvers/review'
+import { diagnosticsQueries } from './resolvers/diagnostics'
 import { apply, status } from './routes/applicant'
 
 const clients: ClientsConfig<Clients> = {
@@ -39,7 +40,7 @@ export default new Service<Clients, RecorderState, ParamsContext>({
     resolvers: {
       Application: applicationFields,
       DocumentRef: documentFields,
-      Query: reviewQueries,
+      Query: { ...reviewQueries, ...diagnosticsQueries },
       Mutation: reviewMutations,
     },
   },
