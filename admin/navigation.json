@@ -1,0 +1,12 @@
+{
+  "section": "customers",
+  "titleId": "admin/b2b-onboarding.navigation.title",
+  "adminVersion": 4,
+  "subSection": "b2bOnboarding",
+  "subSectionItems": [
+    {
+      "labelId": "admin/b2b-onboarding.navigation.label",
+      "path": "/admin/app/b2b-onboarding"
+    }
+  ]
+}

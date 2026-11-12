@@ -1,0 +1,7 @@
+#import "./applicationFields.graphql"
+
+mutation ReviewDocument($id: ID!, $stageId: ID!, $kind: String!, $decision: DocumentDecision!, $note: String) {
+  reviewDocument(id: $id, stageId: $stageId, kind: $kind, decision: $decision, note: $note) @context(provider: "logixalpartnerus.b2b-onboarding") {
+    ...ApplicationDetail
+  }
+}

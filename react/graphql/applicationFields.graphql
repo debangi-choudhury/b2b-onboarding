@@ -1,0 +1,75 @@
+fragment ApplicationDetail on Application {
+  id
+  reference
+  status
+  companyName
+  tradeName
+  registrationNumber
+  taxId
+  contact {
+    firstName
+    lastName
+    email
+    phone
+  }
+  address {
+    street
+    number
+    complement
+    city
+    state
+    postalCode
+    country
+    receiverName
+  }
+  stages {
+    id
+    label
+    type
+  }
+  currentStageIndex
+  currentStage {
+    id
+    label
+    type
+  }
+  verification {
+    status
+    code
+    message
+    provider
+    reference
+    registeredName
+    checkedAt
+  }
+  documents {
+    kind
+    fileName
+    contentType
+    size
+    uploadedAt
+    status
+    lastReview {
+      decision
+      actor
+      note
+      at
+    }
+  }
+  rejectionReason
+  organizationId
+  submittedAt
+  updatedAt
+  decidedAt
+  events {
+    type
+    stageId
+    stageLabel
+    actorType
+    actor
+    reason
+    note
+    details
+    createdAt
+  }
+}

@@ -1,0 +1,24 @@
+query OnboardingApplications($status: ApplicationStatus, $page: Int, $pageSize: Int) {
+  onboardingApplications(status: $status, page: $page, pageSize: $pageSize) @context(provider: "logixalpartnerus.b2b-onboarding") {
+    items {
+      id
+      reference
+      status
+      companyName
+      registrationNumber
+      currentStageIndex
+      stages {
+        id
+        label
+        type
+      }
+      submittedAt
+      updatedAt
+    }
+    pagination {
+      total
+      page
+      pageSize
+    }
+  }
+}

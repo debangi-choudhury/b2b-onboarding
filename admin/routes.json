@@ -1,0 +1,10 @@
+{
+  "admin.app.b2b-onboarding": {
+    "component": "ReviewQueue",
+    "path": "/admin/app/b2b-onboarding"
+  },
+  "admin.app.b2b-onboarding-detail": {
+    "component": "ReviewDetail",
+    "path": "/admin/app/b2b-onboarding/:id"
+  }
+}
