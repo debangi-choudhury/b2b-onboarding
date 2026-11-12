@@ -25,6 +25,7 @@ enum VerificationStatus {
 
 enum EventType {
   SUBMITTED
+  DOCUMENT_REVIEWED
   VERIFICATION_RUN
   STAGE_PASSED
   APPROVED
@@ -80,12 +81,42 @@ type Verification {
   checkedAt: String!
 }
 
+enum DocumentStatus {
+  NEEDS_REVIEW
+  ACCEPTED
+  REJECTED
+}
+
+enum DocumentDecision {
+  ACCEPT
+  REJECT
+}
+
+type DocumentReview {
+  decision: DocumentStatus!
+  stageId: String!
+  stageLabel: String!
+  actor: String!
+  note: String
+  at: String!
+}
+
 type DocumentRef {
   kind: String!
   fileName: String!
   contentType: String!
   size: Int!
   uploadedAt: String!
+  status: DocumentStatus!
+  lastReview: DocumentReview
+}
+
+type DocumentFile {
+  kind: String!
+  fileName: String!
+  contentType: String!
+  size: Int!
+  dataBase64: String!
 }
 
 type ApplicationEvent {

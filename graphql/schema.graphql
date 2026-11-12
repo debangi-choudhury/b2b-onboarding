@@ -21,9 +21,25 @@ type Query {
   onboardingStages: StageConfig
     @auth(scope: PRIVATE, productCode: "66", resourceCode: "workspace-read-write")
     @cacheControl(scope: PRIVATE)
+
+  "A document's file for the review screen, base64 encoded (at most 5 MB)"
+  onboardingDocument(id: ID!, kind: String!): DocumentFile
+    @auth(scope: PRIVATE, productCode: "66", resourceCode: "workspace-read-write")
+    @cacheControl(scope: PRIVATE)
 }
 
 type Mutation {
+  "Accepts or rejects one document. Only on a REVIEW stage; every decision is kept."
+  reviewDocument(
+    id: ID!
+    stageId: ID!
+    kind: String!
+    decision: DocumentDecision!
+    "Internal. Never shown to the applicant."
+    note: String
+  ): Application
+    @auth(scope: PRIVATE, productCode: "66", resourceCode: "workspace-read-write")
+
   "Runs the eligibility check on the application's verification stage"
   runVerification(id: ID!, stageId: ID!): Application
     @auth(scope: PRIVATE, productCode: "66", resourceCode: "workspace-read-write")

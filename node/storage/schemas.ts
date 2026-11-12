@@ -88,6 +88,8 @@ export const EVENT_SCHEMA = {
   type: 'object',
   properties: {
     applicationId: { type: 'string', maxLength: 64 },
+    // Document reviews aren't stored here: they live on each document in the
+    // application record, and the API merges them into the history.
     type: {
       type: 'string',
       enum: [

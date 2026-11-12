@@ -51,6 +51,18 @@ export interface ApplicationInput {
   address: Address
 }
 
+export type DocumentStatus = 'NEEDS_REVIEW' | 'ACCEPTED' | 'REJECTED'
+
+/** One reviewer decision on one document. The latest one is its status. */
+export interface DocumentReview {
+  decision: 'ACCEPTED' | 'REJECTED'
+  stageId: string
+  stageLabel: string
+  actor: string
+  note?: string | null
+  at: string
+}
+
 export interface DocumentRef {
   kind: string
   fileName: string
@@ -58,6 +70,12 @@ export interface DocumentRef {
   size: number
   storageId: string
   uploadedAt: string
+  /**
+   * Kept on the document rather than as history events, because the history
+   * entity's schema was locked when this was added. The API merges these into
+   * the history it returns.
+   */
+  reviews?: DocumentReview[]
 }
 
 export interface Application extends ApplicationInput {
@@ -92,6 +110,7 @@ export interface Actor {
 
 export type EventType =
   | 'SUBMITTED'
+  | 'DOCUMENT_REVIEWED'
   | 'VERIFICATION_RUN'
   | 'STAGE_PASSED'
   | 'APPROVED'

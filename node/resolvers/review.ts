@@ -1,19 +1,27 @@
-import { UserInputError } from '@vtex/api'
+import { NotFoundError, UserInputError } from '@vtex/api'
 
 import { reviewerFromToken } from '../domain/actor'
 import { toOrganizationInput } from '../domain/organization'
-import type { Application, ApplicationStatus } from '../domain/types'
+import type {
+  Application,
+  ApplicationStatus,
+  DocumentRef,
+} from '../domain/types'
 import type { Decision } from '../domain/workflow'
 import {
   completeApproval,
   currentStage,
   decide,
+  documentStatus,
   failedApproval,
+  fullHistory,
   recordVerification,
+  reviewDocument,
   verificationStage,
 } from '../domain/workflow'
 import {
   applyTransition,
+  documentStore,
   loadApplication,
   repository,
   stageConfig,
@@ -111,6 +119,35 @@ export const reviewQueries = {
     loadApplication(ctx, id),
 
   onboardingStages: (_: unknown, __: unknown, ctx: Context) => stageConfig(ctx),
+
+  /**
+   * A document's file for the review screen, as base64. Files are at most
+   * 5 MB, so this stays small enough for one response. Only reviewers reach
+   * it (@auth), and the storage ID never leaves the server.
+   */
+  onboardingDocument: async (
+    _: unknown,
+    { id, kind }: { id: string; kind: string },
+    ctx: Context
+  ) => {
+    const app = await loadApplication(ctx, id)
+    const doc = (app.documents ?? []).find((d) => d.kind === kind)
+
+    if (!doc) {
+      throw new NotFoundError('Document not found')
+    }
+
+    const file = await documentStore(ctx).get(doc.storageId)
+
+    return {
+      kind: doc.kind,
+      fileName: doc.fileName,
+      // Our own record of the type, checked on upload, not the stored header
+      contentType: doc.contentType,
+      size: file.data.length,
+      dataBase64: file.data.toString('base64'),
+    }
+  },
 }
 
 export const reviewMutations = {
@@ -132,6 +169,40 @@ export const reviewMutations = {
         ctx,
         app,
         recordVerification(app, stageId, result, actor(ctx), now)
+      )
+    } catch (e) {
+      return toUserError(e)
+    }
+  },
+
+  reviewDocument: async (
+    _: unknown,
+    args: {
+      id: string
+      stageId: string
+      kind: string
+      decision: 'ACCEPT' | 'REJECT'
+      note?: string
+    },
+    ctx: Context
+  ) => {
+    const app = await loadApplication(ctx, args.id)
+
+    try {
+      return await applyTransition(
+        ctx,
+        app,
+        reviewDocument(
+          app,
+          {
+            stageId: args.stageId,
+            kind: args.kind,
+            decision: args.decision === 'ACCEPT' ? 'ACCEPTED' : 'REJECTED',
+            note: args.note,
+          },
+          actor(ctx),
+          new Date()
+        )
       )
     } catch (e) {
       return toUserError(e)
@@ -176,6 +247,12 @@ export const applicationFields = {
   currentStage: (app: Application) =>
     app.status === 'IN_REVIEW' && app.stages?.length ? currentStage(app) : null,
 
-  events: (app: Application, _: unknown, ctx: Context) =>
-    repository(ctx).events(app.id),
+  events: async (app: Application, _: unknown, ctx: Context) =>
+    fullHistory(app, await repository(ctx).events(app.id)),
+}
+
+export const documentFields = {
+  status: (doc: DocumentRef) => documentStatus(doc),
+  lastReview: (doc: DocumentRef) =>
+    doc.reviews?.[doc.reviews.length - 1] ?? null,
 }

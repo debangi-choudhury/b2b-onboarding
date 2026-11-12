@@ -3,6 +3,8 @@ import type {
   Application,
   ApplicationEvent,
   ApplicationInput,
+  DocumentRef,
+  DocumentStatus,
   Stage,
   VerificationResult,
 } from './types'
@@ -14,6 +16,9 @@ export type WorkflowErrorCode =
   | 'NOT_IN_REVIEW'
   | 'STAGE_MISMATCH'
   | 'NOT_VERIFICATION_STAGE'
+  | 'NOT_REVIEW_STAGE'
+  | 'DOCUMENT_NOT_FOUND'
+  | 'DOCUMENTS_NOT_ACCEPTED'
   | 'VERIFICATION_REQUIRED'
   | 'VERIFICATION_FAILED'
   | 'REASON_REQUIRED'
@@ -41,6 +46,12 @@ function stageEvent(stage: Stage, actor: Actor, at: string) {
     actor: actor.id,
     createdAt: at,
   }
+}
+
+export function documentStatus(doc: DocumentRef): DocumentStatus {
+  const latest = doc.reviews?.[doc.reviews.length - 1]
+
+  return latest ? latest.decision : 'NEEDS_REVIEW'
 }
 
 export function currentStage(app: Application): Stage {
@@ -132,6 +143,90 @@ export function verificationStage(app: Application, stageId: string): Stage {
   return stage
 }
 
+/**
+ * A reviewer accepts or rejects one document on a REVIEW stage. They can
+ * change their mind until the stage passes; every decision is kept.
+ */
+export function reviewDocument(
+  app: Application,
+  input: {
+    stageId: string
+    kind: string
+    decision: 'ACCEPTED' | 'REJECTED'
+    note?: unknown
+  },
+  actor: Actor,
+  now: Date
+): Transition {
+  const stage = assertActionable(app, input.stageId)
+
+  if (stage.type !== 'REVIEW') {
+    throw new WorkflowError(
+      'NOT_REVIEW_STAGE',
+      `Documents are reviewed on review stages, not on "${stage.label}"`
+    )
+  }
+
+  const documents = app.documents ?? []
+
+  if (!documents.some((doc) => doc.kind === input.kind)) {
+    throw new WorkflowError(
+      'DOCUMENT_NOT_FOUND',
+      'The application has no such document'
+    )
+  }
+
+  const at = now.toISOString()
+  const review = {
+    decision: input.decision,
+    stageId: stage.id,
+    stageLabel: stage.label,
+    actor: actor.id,
+    note: cleanNote(input.note),
+    at,
+  }
+
+  return {
+    patch: {
+      documents: documents.map((doc) =>
+        doc.kind === input.kind
+          ? { ...doc, reviews: [...(doc.reviews ?? []), review] }
+          : doc
+      ),
+      updatedAt: at,
+    },
+    events: [],
+    effect: 'NONE',
+  }
+}
+
+/**
+ * The full history: stored events plus document reviews, oldest first.
+ * Document reviews live on the documents (see DocumentRef.reviews).
+ */
+export function fullHistory(
+  app: Application,
+  events: ApplicationEvent[]
+): ApplicationEvent[] {
+  const reviews: ApplicationEvent[] = (app.documents ?? []).flatMap((doc) =>
+    (doc.reviews ?? []).map((review) => ({
+      applicationId: app.id,
+      type: 'DOCUMENT_REVIEWED' as const,
+      stageId: review.stageId,
+      stageLabel: review.stageLabel,
+      actorType: 'REVIEWER' as const,
+      actor: review.actor,
+      note: review.note ?? null,
+      details: JSON.stringify({ kind: doc.kind, decision: review.decision }),
+      createdAt: review.at,
+    }))
+  )
+
+  return [...events, ...reviews].sort((a, b) =>
+    a.createdAt.localeCompare(b.createdAt)
+  )
+}
+
 /** Records the outcome of an eligibility check on the verification stage. */
 export function recordVerification(
   app: Application,
@@ -196,6 +291,19 @@ export function decide(
         { ...stageEvent(stage, actor, at), type: 'REJECTED', reason, note },
       ],
       effect: 'NONE',
+    }
+  }
+
+  if (stage.type === 'REVIEW') {
+    const pending = (app.documents ?? []).filter(
+      (doc) => documentStatus(doc) !== 'ACCEPTED'
+    )
+
+    if (pending.length > 0) {
+      throw new WorkflowError(
+        'DOCUMENTS_NOT_ACCEPTED',
+        'Accept every document before passing this stage, or reject the application'
+      )
     }
   }
 

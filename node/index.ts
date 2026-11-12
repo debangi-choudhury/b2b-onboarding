@@ -9,6 +9,7 @@ import { method, Service } from '@vtex/api'
 import { Clients } from './clients'
 import {
   applicationFields,
+  documentFields,
   reviewMutations,
   reviewQueries,
 } from './resolvers/review'
@@ -37,6 +38,7 @@ export default new Service<Clients, RecorderState, ParamsContext>({
   graphql: {
     resolvers: {
       Application: applicationFields,
+      DocumentRef: documentFields,
       Query: reviewQueries,
       Mutation: reviewMutations,
     },
