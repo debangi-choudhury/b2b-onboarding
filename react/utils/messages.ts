@@ -9,36 +9,15 @@ export const messages = defineMessages({
     id: 'store/b2b-onboarding.apply.title',
     defaultMessage: 'Apply for a business account',
   },
-  intro: {
-    id: 'store/b2b-onboarding.apply.intro',
-    defaultMessage:
-      'Tell us about your company and upload two documents. Our team reviews every application in stages and emails you when your account is ready.',
-  },
   demoNotice: {
     id: 'store/b2b-onboarding.apply.demo-notice',
     defaultMessage:
       'Demo store: upload sample documents only, never real company or personal documents.',
   },
-  company: {
-    id: 'store/b2b-onboarding.section.company',
-    defaultMessage: 'Company',
-  },
-  contact: {
-    id: 'store/b2b-onboarding.section.contact',
-    defaultMessage: 'Account administrator',
-  },
   contactHelp: {
     id: 'store/b2b-onboarding.section.contact-help',
     defaultMessage:
       'This person becomes the administrator of your business account and receives the approval email.',
-  },
-  address: {
-    id: 'store/b2b-onboarding.section.address',
-    defaultMessage: 'Business address',
-  },
-  documents: {
-    id: 'store/b2b-onboarding.section.documents',
-    defaultMessage: 'Documents',
   },
   documentsHelp: {
     id: 'store/b2b-onboarding.section.documents-help',
@@ -149,6 +128,185 @@ export const messages = defineMessages({
   newApplication: {
     id: 'store/b2b-onboarding.status.new-application',
     defaultMessage: 'Start a new application',
+  },
+  eyebrow: {
+    id: 'store/b2b-onboarding.apply.eyebrow',
+    defaultMessage: 'Business account',
+  },
+  introSteps: {
+    id: 'store/b2b-onboarding.apply.intro-steps',
+    defaultMessage:
+      'Five short steps. Our team reviews every application and emails your administrator when the account is ready.',
+  },
+  stepsLabel: {
+    id: 'store/b2b-onboarding.steps.label',
+    defaultMessage: 'Application steps',
+  },
+  stepCompany: {
+    id: 'store/b2b-onboarding.steps.company',
+    defaultMessage: 'Company',
+  },
+  stepAdministrator: {
+    id: 'store/b2b-onboarding.steps.administrator',
+    defaultMessage: 'Administrator',
+  },
+  stepAddress: {
+    id: 'store/b2b-onboarding.steps.address',
+    defaultMessage: 'Address',
+  },
+  stepDocuments: {
+    id: 'store/b2b-onboarding.steps.documents',
+    defaultMessage: 'Documents',
+  },
+  stepReview: {
+    id: 'store/b2b-onboarding.steps.review',
+    defaultMessage: 'Review',
+  },
+  stepDone: {
+    id: 'store/b2b-onboarding.steps.done',
+    defaultMessage: 'Done',
+  },
+  stepCurrent: {
+    id: 'store/b2b-onboarding.steps.current',
+    defaultMessage: 'Current step',
+  },
+  stepUpNext: {
+    id: 'store/b2b-onboarding.steps.up-next',
+    defaultMessage: 'Up next',
+  },
+  stepOf: {
+    id: 'store/b2b-onboarding.steps.step-of',
+    defaultMessage: 'Step {current} of {total}',
+  },
+  companyTitle: {
+    id: 'store/b2b-onboarding.company.title',
+    defaultMessage: 'Tell us about your company',
+  },
+  companyHelp: {
+    id: 'store/b2b-onboarding.company.help',
+    defaultMessage:
+      'Use the legal name and registration number shown on your registration certificate.',
+  },
+  adminTitle: {
+    id: 'store/b2b-onboarding.administrator.title',
+    defaultMessage: 'Who will manage the account?',
+  },
+  addressTitle: {
+    id: 'store/b2b-onboarding.address.title',
+    defaultMessage: 'Where is your business based?',
+  },
+  addressHelp: {
+    id: 'store/b2b-onboarding.address.help',
+    defaultMessage: 'This becomes the default address of your organization.',
+  },
+  documentsTitle: {
+    id: 'store/b2b-onboarding.documents.title',
+    defaultMessage: 'Upload your documents',
+  },
+  reviewTitle: {
+    id: 'store/b2b-onboarding.review.title',
+    defaultMessage: 'Check your application',
+  },
+  reviewHelp: {
+    id: 'store/b2b-onboarding.review.help',
+    defaultMessage:
+      'Make sure everything is right before you submit. You can edit any section.',
+  },
+  back: {
+    id: 'store/b2b-onboarding.apply.back',
+    defaultMessage: 'Back',
+  },
+  continue: {
+    id: 'store/b2b-onboarding.apply.continue',
+    defaultMessage: 'Continue',
+  },
+  continueReview: {
+    id: 'store/b2b-onboarding.apply.continue-review',
+    defaultMessage: 'Continue to review',
+  },
+  edit: {
+    id: 'store/b2b-onboarding.apply.edit',
+    defaultMessage: 'Edit',
+  },
+  dropHere: {
+    id: 'store/b2b-onboarding.upload.drop-here',
+    defaultMessage: 'Drop the file here or',
+  },
+  browse: {
+    id: 'store/b2b-onboarding.upload.browse',
+    defaultMessage: 'browse',
+  },
+  fileHint: {
+    id: 'store/b2b-onboarding.upload.hint',
+    defaultMessage: 'PDF, JPG or PNG · max 5 MB',
+  },
+  replace: {
+    id: 'store/b2b-onboarding.upload.replace',
+    defaultMessage: 'Replace',
+  },
+  ready: {
+    id: 'store/b2b-onboarding.upload.ready',
+    defaultMessage: 'Ready',
+  },
+  nextTitle: {
+    id: 'store/b2b-onboarding.next.title',
+    defaultMessage: 'What happens next',
+  },
+  next1Title: {
+    id: 'store/b2b-onboarding.next.review-title',
+    defaultMessage: 'Document review',
+  },
+  next1Text: {
+    id: 'store/b2b-onboarding.next.review-text',
+    defaultMessage: 'A reviewer checks each document.',
+  },
+  next2Title: {
+    id: 'store/b2b-onboarding.next.compliance-title',
+    defaultMessage: 'Compliance check',
+  },
+  next2Text: {
+    id: 'store/b2b-onboarding.next.compliance-text',
+    defaultMessage: 'We verify your company registration.',
+  },
+  next3Title: {
+    id: 'store/b2b-onboarding.next.approval-title',
+    defaultMessage: 'Final approval',
+  },
+  next3Text: {
+    id: 'store/b2b-onboarding.next.approval-text',
+    defaultMessage: 'Your administrator gets a sign-in email.',
+  },
+  summaryTitle: {
+    id: 'store/b2b-onboarding.summary.title',
+    defaultMessage: 'Your application so far',
+  },
+  summaryEmpty: {
+    id: 'store/b2b-onboarding.summary.empty',
+    defaultMessage: 'Your answers appear here as you go.',
+  },
+  summaryCompany: {
+    id: 'store/b2b-onboarding.summary.company',
+    defaultMessage: 'Company',
+  },
+  summaryRegistration: {
+    id: 'store/b2b-onboarding.summary.registration',
+    defaultMessage: 'Registration',
+  },
+  summaryAdmin: {
+    id: 'store/b2b-onboarding.summary.administrator',
+    defaultMessage: 'Administrator',
+  },
+  summaryAddress: {
+    id: 'store/b2b-onboarding.summary.address',
+    defaultMessage: 'Address',
+  },
+  summaryDocuments: {
+    id: 'store/b2b-onboarding.summary.documents',
+    defaultMessage: 'Documents',
+  },
+  documentsCount: {
+    id: 'store/b2b-onboarding.summary.documents-count',
+    defaultMessage: '{count} of {total} uploaded',
   },
 })
 

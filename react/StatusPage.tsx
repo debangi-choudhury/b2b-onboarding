@@ -3,9 +3,11 @@ import { useIntl } from 'react-intl'
 import { useCssHandles } from 'vtex.css-handles'
 import { useRuntime } from 'vtex.render-runtime'
 
+import { NextSteps } from './components/SidePanels'
 import { fetchStatus } from './utils/api'
 import type { ApplicantView } from './utils/api'
 import { messages } from './utils/messages'
+import { card, color, input, label, primaryButton } from './utils/theme'
 
 const CSS_HANDLES = [
   'statusContainer',
@@ -17,9 +19,9 @@ const CSS_HANDLES = [
 ] as const
 
 const BADGE = {
-  IN_REVIEW: 'bg-warning--faded',
-  APPROVED: 'bg-success--faded',
-  REJECTED: 'bg-danger--faded',
+  IN_REVIEW: { background: '#EEF3FD', border: '#C9D6F5', color: '#1A3FA6' },
+  APPROVED: { background: '#F1FAF5', border: '#CFE7DA', color: '#17704A' },
+  REJECTED: { background: '#FDF1F0', border: '#F2C9C6', color: '#9E2A24' },
 }
 
 function StatusPage() {
@@ -64,126 +66,216 @@ function StatusPage() {
         })
       : ''
 
-  const input = 'w-100 pa3 br2 ba b--muted-4 bg-base c-on-base t-body'
+  const row = (term: string, detail: string | null | undefined) =>
+    detail ? (
+      <>
+        <dt style={{ color: color.textMuted }}>{term}</dt>
+        <dd style={{ margin: 0, fontWeight: 600, overflowWrap: 'anywhere' }}>
+          {detail}
+        </dd>
+      </>
+    ) : null
 
   return (
-    <div className={`${handles.statusContainer} mw6 center pv8 ph5`}>
-      <h1 className={`${handles.statusTitle} t-heading-2 c-on-base mt0 mb4`}>
-        {intl.formatMessage(messages.statusTitle)}
-      </h1>
-      <p className="t-body c-on-base mb6">
-        {intl.formatMessage(messages.statusIntro)}
-      </p>
-
-      <form className={`${handles.statusForm} mb6`} onSubmit={onSubmit}>
-        <label
-          htmlFor="b2b-onboarding-reference"
-          className="db mb2 t-small c-on-base"
-        >
-          {intl.formatMessage(messages.reference)}
-        </label>
-        <input
-          id="b2b-onboarding-reference"
-          className={`${input} mb5`}
-          value={reference}
-          placeholder="APP-XXXXXXXX"
-          autoComplete="off"
-          required
-          onChange={(e) => setReference(e.target.value)}
-        />
-        <label
-          htmlFor="b2b-onboarding-token"
-          className="db mb2 t-small c-on-base"
-        >
-          {intl.formatMessage(messages.statusCode)}
-        </label>
-        <input
-          id="b2b-onboarding-token"
-          className={`${input} mb5`}
-          value={token}
-          type="password"
-          autoComplete="off"
-          required
-          onChange={(e) => setToken(e.target.value)}
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className={`pointer pv4 ph7 br2 bn bg-action-primary c-on-action-primary t-action ${
-            loading ? 'o-60' : ''
-          }`}
-        >
-          {intl.formatMessage(messages.lookup)}
-        </button>
-      </form>
-
-      {error && (
-        <p className="t-body c-danger" role="alert">
-          {error}
-        </p>
-      )}
-
-      {view && (
-        <section
-          className={`${handles.statusResult} pa6 br3 ba b--muted-4`}
-          aria-live="polite"
-        >
-          <p
-            className={`${
-              handles.statusBadge
-            } dib pa3 br2 t-body c-on-base mt0 mb5 ${BADGE[view.status]}`}
-          >
-            {intl.formatMessage(messages[view.status])}
-          </p>
-          <dl className="t-body c-on-base ma0">
-            <dt className="t-small c-muted-1">
-              {intl.formatMessage(messages.company2)}
-            </dt>
-            <dd className="ml0 mb4">{view.companyName}</dd>
-            <dt className="t-small c-muted-1">
-              {intl.formatMessage(messages.reference)}
-            </dt>
-            <dd className="ml0 mb4">{view.reference}</dd>
-            <dt className="t-small c-muted-1">
-              {intl.formatMessage(messages.submittedOn)}
-            </dt>
-            <dd className="ml0 mb4">{date(view.submittedAt)}</dd>
-            {view.currentStageLabel && (
-              <>
-                <dt className="t-small c-muted-1">
-                  {intl.formatMessage(messages.currentStep)}
-                </dt>
-                <dd className="ml0 mb4">{view.currentStageLabel}</dd>
-              </>
-            )}
-            {view.decidedAt && (
-              <>
-                <dt className="t-small c-muted-1">
-                  {intl.formatMessage(messages.decidedOn)}
-                </dt>
-                <dd className="ml0 mb4">{date(view.decidedAt)}</dd>
-              </>
-            )}
-            {view.rejectionReason && (
-              <>
-                <dt className="t-small c-muted-1">
-                  {intl.formatMessage(messages.reason)}
-                </dt>
-                <dd className={`${handles.statusReason} ml0 mb0`}>
-                  {view.rejectionReason}
-                </dd>
-              </>
-            )}
-          </dl>
-        </section>
-      )}
-
-      <a
-        className="db mt6 c-link t-body"
-        href={`${rootPath}/business-application`}
+    <div
+      className={handles.statusContainer}
+      style={{ background: color.ground, color: color.text }}
+    >
+      <div
+        style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px 64px' }}
       >
-        {intl.formatMessage(messages.newApplication)}
-      </a>
+        <p
+          style={{
+            margin: '0 0 8px',
+            fontSize: 13,
+            fontWeight: 600,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: color.accent,
+          }}
+        >
+          {intl.formatMessage(messages.eyebrow)}
+        </p>
+        <h1
+          className={handles.statusTitle}
+          style={{
+            margin: '0 0 8px',
+            fontSize: 34,
+            lineHeight: 1.2,
+            fontWeight: 700,
+          }}
+        >
+          {intl.formatMessage(messages.statusTitle)}
+        </h1>
+        <p style={{ margin: '0 0 28px', fontSize: 16, color: color.textSoft }}>
+          {intl.formatMessage(messages.statusIntro)}
+        </p>
+
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 24,
+            alignItems: 'flex-start',
+          }}
+        >
+          <div
+            style={{
+              flex: '999 1 560px',
+              minWidth: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 24,
+            }}
+          >
+            <form
+              className={handles.statusForm}
+              onSubmit={onSubmit}
+              style={{ ...card, padding: 32 }}
+            >
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: '18px 20px',
+                }}
+              >
+                <div>
+                  <label htmlFor="b2b-onboarding-reference" style={label}>
+                    {intl.formatMessage(messages.reference)}
+                  </label>
+                  <input
+                    id="b2b-onboarding-reference"
+                    style={input(false)}
+                    value={reference}
+                    placeholder="APP-XXXXXXXX"
+                    autoComplete="off"
+                    required
+                    onChange={(e) => setReference(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="b2b-onboarding-token" style={label}>
+                    {intl.formatMessage(messages.statusCode)}
+                  </label>
+                  <input
+                    id="b2b-onboarding-token"
+                    style={input(false)}
+                    value={token}
+                    type="password"
+                    autoComplete="off"
+                    required
+                    onChange={(e) => setToken(e.target.value)}
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                style={{ ...primaryButton(loading), marginTop: 24 }}
+              >
+                {intl.formatMessage(messages.lookup)}
+              </button>
+              {error && (
+                <p
+                  role="alert"
+                  style={{
+                    margin: '16px 0 0',
+                    fontSize: 15,
+                    color: color.danger,
+                  }}
+                >
+                  {error}
+                </p>
+              )}
+            </form>
+
+            {view && (
+              <section
+                className={handles.statusResult}
+                aria-live="polite"
+                style={{ ...card, padding: 32 }}
+              >
+                <p
+                  className={handles.statusBadge}
+                  style={{
+                    display: 'inline-block',
+                    margin: '0 0 20px',
+                    padding: '8px 14px',
+                    borderRadius: 999,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    background: BADGE[view.status].background,
+                    border: `1px solid ${BADGE[view.status].border}`,
+                    color: BADGE[view.status].color,
+                  }}
+                >
+                  {intl.formatMessage(messages[view.status])}
+                </p>
+                <dl
+                  style={{
+                    margin: 0,
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(0, 180px) 1fr',
+                    gap: '10px 16px',
+                    fontSize: 15,
+                  }}
+                >
+                  {row(intl.formatMessage(messages.company2), view.companyName)}
+                  {row(intl.formatMessage(messages.reference), view.reference)}
+                  {row(
+                    intl.formatMessage(messages.submittedOn),
+                    date(view.submittedAt)
+                  )}
+                  {row(
+                    intl.formatMessage(messages.currentStep),
+                    view.currentStageLabel
+                  )}
+                  {row(
+                    intl.formatMessage(messages.decidedOn),
+                    date(view.decidedAt)
+                  )}
+                </dl>
+                {view.rejectionReason && (
+                  <div
+                    className={handles.statusReason}
+                    style={{
+                      marginTop: 20,
+                      padding: '14px 16px',
+                      borderRadius: 10,
+                      background: BADGE.REJECTED.background,
+                      border: `1px solid ${BADGE.REJECTED.border}`,
+                      fontSize: 15,
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: 'block',
+                        fontWeight: 600,
+                        marginBottom: 4,
+                      }}
+                    >
+                      {intl.formatMessage(messages.reason)}
+                    </span>
+                    {view.rejectionReason}
+                  </div>
+                )}
+              </section>
+            )}
+
+            <a
+              href={`${rootPath}/business-application`}
+              style={{ fontSize: 15, fontWeight: 600 }}
+            >
+              {intl.formatMessage(messages.newApplication)}
+            </a>
+          </div>
+
+          <aside style={{ flex: '1 1 300px', minWidth: 0 }}>
+            <NextSteps />
+          </aside>
+        </div>
+      </div>
     </div>
   )
 }
