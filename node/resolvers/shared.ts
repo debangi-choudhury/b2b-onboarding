@@ -14,7 +14,7 @@ import type { EligibilityVerifier } from '../verification/types'
 export const verifier: EligibilityVerifier = new MockRegistryVerifier()
 
 export function repository(ctx: Context) {
-  return new ApplicationRepository(ctx.clients.masterdata, (message) =>
+  return new ApplicationRepository(ctx.clients.accountMasterData, (message) =>
     ctx.vtex.logger.warn({ message })
   )
 }

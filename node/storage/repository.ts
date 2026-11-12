@@ -1,5 +1,4 @@
-import type { MasterData } from '@vtex/api'
-
+import type { AccountMasterData } from '../clients/accountMasterData'
 import type {
   Application,
   ApplicationEvent,
@@ -40,7 +39,7 @@ const statusOf = (e: unknown) =>
 
 export class ApplicationRepository {
   constructor(
-    private readonly md: MasterData,
+    private readonly md: AccountMasterData,
     private readonly warn: (message: string) => void = () => {}
   ) {}
 
@@ -69,10 +68,7 @@ export class ApplicationRepository {
     let stored: { title?: string } | null = null
 
     try {
-      stored = await this.md.getSchema<{ title?: string }>({
-        dataEntity,
-        schema: SCHEMA,
-      })
+      stored = await this.md.getSchema<{ title?: string }>(dataEntity, SCHEMA)
     } catch (e) {
       if (statusOf(e) !== 404) {
         throw e
@@ -84,11 +80,7 @@ export class ApplicationRepository {
     }
 
     try {
-      await this.md.createOrUpdateSchema({
-        dataEntity,
-        schemaName: SCHEMA,
-        schemaBody: body,
-      })
+      await this.md.putSchema(dataEntity, SCHEMA, body)
     } catch (e) {
       if (statusOf(e) === 423 && stored) {
         this.warn(
@@ -115,12 +107,12 @@ export class ApplicationRepository {
       return false
     }
 
-    await this.md.createOrUpdateEntireDocument({
-      dataEntity: APPLICATION_ENTITY,
-      schema: SCHEMA,
-      id: application.reference,
-      fields: application,
-    })
+    await this.md.putDocument(
+      APPLICATION_ENTITY,
+      application.reference,
+      application,
+      SCHEMA
+    )
 
     return true
   }
@@ -129,11 +121,11 @@ export class ApplicationRepository {
     await this.ensureSchemas()
 
     try {
-      const found = await this.md.getDocument<Application | null>({
-        dataEntity: APPLICATION_ENTITY,
+      const found = await this.md.getDocument<Application | null>(
+        APPLICATION_ENTITY,
         id,
-        fields: APPLICATION_FIELDS,
-      })
+        APPLICATION_FIELDS
+      )
 
       return found?.id ? found : null
     } catch (e) {
@@ -152,29 +144,30 @@ export class ApplicationRepository {
   }) {
     await this.ensureSchemas()
 
-    return this.md.searchDocumentsWithPaginationInfo<Application>({
-      dataEntity: APPLICATION_ENTITY,
-      schema: SCHEMA,
-      fields: LIST_FIELDS,
-      where: filter.status ? `status=${filter.status}` : undefined,
-      sort: 'submittedAt DESC',
-      pagination: {
-        page: Math.max(1, filter.page),
-        pageSize: Math.min(Math.max(1, filter.pageSize), MAX_PAGE_SIZE),
-      },
-    })
+    const pagination = {
+      page: Math.max(1, filter.page),
+      pageSize: Math.min(Math.max(1, filter.pageSize), MAX_PAGE_SIZE),
+    }
+
+    const { data, total } = await this.md.search<Application>(
+      APPLICATION_ENTITY,
+      {
+        schema: SCHEMA,
+        fields: LIST_FIELDS,
+        where: filter.status ? `status=${filter.status}` : undefined,
+        sort: 'submittedAt DESC',
+        pagination,
+      }
+    )
+
+    return { data, pagination: { ...pagination, total } }
   }
 
   /** Writes the whole document. See schemas.ts for why it isn't a PATCH. */
   public async save(application: Application): Promise<void> {
     const { id, ...fields } = application
 
-    await this.md.updateEntireDocument({
-      dataEntity: APPLICATION_ENTITY,
-      schema: SCHEMA,
-      id,
-      fields,
-    })
+    await this.md.putDocument(APPLICATION_ENTITY, id, fields, SCHEMA)
   }
 
   public async addEvents(
@@ -184,24 +177,25 @@ export class ApplicationRepository {
     // Sequential, so the history keeps its order even with equal timestamps
     for (const event of events) {
       // eslint-disable-next-line no-await-in-loop
-      await this.md.createDocument({
-        dataEntity: EVENT_ENTITY,
-        schema: SCHEMA,
-        fields: { ...event, applicationId },
-      })
+      await this.md.createDocument(
+        EVENT_ENTITY,
+        { ...event, applicationId },
+        SCHEMA
+      )
     }
   }
 
   public async events(applicationId: string): Promise<ApplicationEvent[]> {
     await this.ensureSchemas()
 
-    return this.md.searchDocuments<ApplicationEvent>({
-      dataEntity: EVENT_ENTITY,
+    const { data } = await this.md.search<ApplicationEvent>(EVENT_ENTITY, {
       schema: SCHEMA,
       fields: EVENT_FIELDS,
       where: `applicationId=${applicationId}`,
       sort: 'createdAt ASC',
       pagination: { page: 1, pageSize: 100 },
     })
+
+    return data
   }
 }

@@ -3,23 +3,23 @@ import type { InstanceOptions, IOContext } from '@vtex/api'
 import FormData from 'form-data'
 
 /**
- * Master Data v1 documents and attachments, which the built-in MasterData
- * client doesn't cover. It uses the same host and app token as that client,
- * so the existing outbound-access policy for api.vtex.com applies.
+ * Master Data v1 documents and attachments, on the account's own host like
+ * AccountMasterData (see there for why not api.vtex.com).
  */
 export class MasterDataFiles extends ExternalClient {
   constructor(ctx: IOContext, options?: InstanceOptions) {
-    super('http://api.vtex.com/api/dataentities', ctx, {
-      ...options,
-      headers: {
-        ...options?.headers,
-        VtexIdclientAutCookie: ctx.authToken,
-      },
-      params: {
-        ...options?.params,
-        an: ctx.account,
-      },
-    })
+    super(
+      `http://${ctx.account}.vtexcommercestable.com.br/api/dataentities`,
+      ctx,
+      {
+        ...options,
+        headers: {
+          ...options?.headers,
+          'X-Vtex-Use-Https': 'true',
+          VtexIdclientAutCookie: ctx.authToken,
+        },
+      }
+    )
   }
 
   public async createDocument(

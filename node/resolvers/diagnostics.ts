@@ -41,25 +41,18 @@ async function probe(name: string, call: () => Promise<unknown>) {
 }
 
 export async function runDiagnostics(ctx: Context): Promise<string> {
-  const md = ctx.clients.masterdata
+  const md = ctx.clients.accountMasterData
   const results = [
-    await probe('getSchema', () =>
-      md.getSchema({ dataEntity: APPLICATION_ENTITY, schema: SCHEMA })
-    ),
-    await probe('searchDocuments', () =>
-      md.searchDocuments({
-        dataEntity: APPLICATION_ENTITY,
+    await probe('getSchema', () => md.getSchema(APPLICATION_ENTITY, SCHEMA)),
+    await probe('search', () =>
+      md.search(APPLICATION_ENTITY, {
         schema: SCHEMA,
         fields: ['id'],
         pagination: { page: 1, pageSize: 1 },
       })
     ),
     await probe('getDocument', () =>
-      md.getDocument({
-        dataEntity: APPLICATION_ENTITY,
-        id: 'APP-PKPM6CQD',
-        fields: ['id'],
-      })
+      md.getDocument(APPLICATION_ENTITY, 'APP-PKPM6CQD', ['id'])
     ),
   ]
 
