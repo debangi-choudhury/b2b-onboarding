@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-11-12
+
+### Removed
+
+- The temporary diagnostic added in 0.1.1.
+
+## [0.1.3] - 2026-11-12
+
+### Changed
+
+- Master Data calls, including document attachments, go to the account's own host, `{account}.vtexcommercestable.com.br`, which VTEX documents for the Master Data policy, instead of `api.vtex.com`.
+
+## [0.1.1] and [0.1.2] - 2026-11-12
+
+### Added
+
+- A temporary, reviewer-only diagnostic for refused Master Data calls after installation. The refusals turned out to stop on their own about 15 minutes after the first install, once the app's permissions took effect.
+
 ## [0.1.0] - 2026-11-12
 
 ### Added

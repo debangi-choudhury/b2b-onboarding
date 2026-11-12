@@ -9,11 +9,14 @@ interface Pagination {
 /**
  * Master Data through the account's own host, {account}.vtexcommercestable.com.br.
  *
- * The ADMIN_DS policy grants Master Data access on that host only. @vtex/api's
- * built-in MasterData client calls api.vtex.com instead, which an installed
- * app may not use: every call got 403 ("Forbidden", "Cannot read private
- * fields") after 0.1.0 was installed, although it worked while linked, when
- * calls carry the developer's access. Found with the 0.1.2 diagnostic.
+ * VTEX documents the ADMIN_DS policy for this host, while @vtex/api's built-in
+ * MasterData client calls api.vtex.com, so this client keeps to the documented
+ * host.
+ *
+ * Note from 2026-11-12: after the app's first install in a workspace, every
+ * Master Data call got 403 ("Forbidden", "Cannot read private fields") for
+ * about 15 to 17 minutes, on either host, until its policies took effect.
+ * Linked apps don't show this. Wait before testing a fresh install.
  */
 export class AccountMasterData extends ExternalClient {
   constructor(ctx: IOContext, options?: InstanceOptions) {

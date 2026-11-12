@@ -1,7 +1,6 @@
 import { NotFoundError, UserInputError } from '@vtex/api'
 
 import { reviewerFromToken } from '../domain/actor'
-import { runDiagnostics } from './diagnostics'
 import { toOrganizationInput } from '../domain/organization'
 import type {
   Application,
@@ -131,17 +130,6 @@ export const reviewQueries = {
     { id, kind }: { id: string; kind: string },
     ctx: Context
   ) => {
-    // TEMPORARY (0.1.2): diagnostic for refused calls in installed apps
-    if (id === '__diagnostics__') {
-      return {
-        kind,
-        fileName: await runDiagnostics(ctx),
-        contentType: 'application/json',
-        size: 0,
-        dataBase64: '',
-      }
-    }
-
     const app = await loadApplication(ctx, id)
     const doc = (app.documents ?? []).find((d) => d.kind === kind)
 
