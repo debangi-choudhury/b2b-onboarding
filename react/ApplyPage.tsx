@@ -278,9 +278,13 @@ function ApplyPage() {
       <select
         id="b2b-onboarding-address-country"
         value={values['address.country']}
-        onChange={(e) =>
-          setValues((prev) => ({ ...prev, 'address.country': e.target.value }))
-        }
+        onChange={(e) => {
+          // Read the value now: React 16 reuses the event object, so it's
+          // already cleared by the time the updater function below runs.
+          const selected = e.target.value
+
+          setValues((prev) => ({ ...prev, 'address.country': selected }))
+        }}
         style={input(false)}
       >
         {COUNTRIES.map((code) => (

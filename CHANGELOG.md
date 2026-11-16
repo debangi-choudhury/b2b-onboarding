@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-16
+
+### Fixed
+
+- Choosing a country on the Address step crashed the form ("Error rendering extension point"), because the selected value was read after React had reset the change event.
+
 ## [0.2.0] - 2026-11-12
 
 ### Changed
