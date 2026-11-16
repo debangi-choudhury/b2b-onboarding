@@ -1,14 +1,7 @@
 [
   {
-    "section": "storeSettings",
-    "subSection": "storeFront",
-    "adminVersion": 4,
-    "subSectionItems": [
-      {
-        "labelId": "admin/b2b-onboarding.navigation.label",
-        "path": "/admin/b2b-onboarding"
-      }
-    ],
-    "LMProductId": "97"
+    "section": "storeSetup",
+    "titleId": "admin/b2b-onboarding.navigation.title",
+    "path": "/admin/b2b-onboarding"
   }
 ]

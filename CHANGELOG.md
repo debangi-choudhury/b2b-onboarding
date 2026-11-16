@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-11-16
+
+### Fixed
+
+- The review queue now has an entry in the Admin menu. The earlier entry, under Store Settings, was accepted by the builder but never shown.
+
 ## [0.2.1] - 2026-11-16
 
 ### Fixed

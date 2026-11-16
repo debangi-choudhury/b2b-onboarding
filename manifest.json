@@ -1,7 +1,7 @@
 {
   "vendor": "logixalpartnerus",
   "name": "b2b-onboarding",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "title": "B2B Onboarding",
   "description": "Business applications with document upload, verification and staged approval for B2B Organizations",
   "builders": {
