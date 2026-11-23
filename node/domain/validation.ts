@@ -1,9 +1,18 @@
+import type { IndiaField, IndiaValues } from './indiaIdentifiers'
+import { INDIA, INDIA_FIELDS, validateIndia } from './indiaIdentifiers'
 import type { ApplicationInput } from './types'
 
 export interface FieldError {
   field: string
   /** Stable code the form turns into a translated message */
-  code: 'REQUIRED' | 'TOO_SHORT' | 'TOO_LONG' | 'INVALID_FORMAT' | 'REJECTED'
+  code:
+    | 'REQUIRED'
+    | 'TOO_SHORT'
+    | 'TOO_LONG'
+    | 'INVALID_FORMAT'
+    | 'REJECTED'
+    /** A PAN whose holder type isn't a business, such as P for a person */
+    | 'PAN_NOT_BUSINESS'
 }
 
 export type ValidationResult =
@@ -116,6 +125,24 @@ export function validateApplication(raw: unknown): ValidationResult {
     values[field] = value
   }
 
+  // India identifiers only for applications from India. For other countries
+  // they're ignored, even if sent.
+  let india: IndiaValues | undefined
+
+  if (values['address.country'] === INDIA) {
+    const checked = validateIndia(
+      Object.fromEntries(
+        INDIA_FIELDS.map((field) => [field, clean(read(raw, field))])
+      ) as Record<IndiaField, string>
+    )
+
+    if (checked.ok) {
+      india = checked.value
+    } else {
+      errors.push(...checked.errors)
+    }
+  }
+
   if (errors.length > 0) {
     return { ok: false, errors }
   }
@@ -145,6 +172,7 @@ export function validateApplication(raw: unknown): ValidationResult {
         country: v('address.country'),
         receiverName: values['address.receiverName'],
       },
+      india,
     },
   }
 }
@@ -170,4 +198,17 @@ export function cleanNote(raw: unknown): string | null {
   const value = clean(raw)
 
   return value ? value.slice(0, NOTE_MAX) : null
+}
+
+const DECISION_NOTE_MIN = 10
+
+/** A reviewer's note on a manual KYC decision: required, unlike other notes */
+export function cleanDecisionNote(raw: unknown): string | null {
+  const value = clean(raw)
+
+  if (value.length < DECISION_NOTE_MIN || value.length > NOTE_MAX) {
+    return null
+  }
+
+  return value
 }

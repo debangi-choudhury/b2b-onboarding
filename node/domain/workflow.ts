@@ -1,3 +1,5 @@
+import { maskAccount, maskPan } from './indiaIdentifiers'
+import { toKycCheck, verificationOutcome } from './kycOutcome'
 import type {
   Actor,
   Application,
@@ -5,10 +7,13 @@ import type {
   ApplicationInput,
   DocumentRef,
   DocumentStatus,
+  KycCheckKind,
+  KycResult,
+  RevealableIdentifier,
   Stage,
   VerificationResult,
 } from './types'
-import { cleanNote, cleanReason } from './validation'
+import { cleanDecisionNote, cleanNote, cleanReason } from './validation'
 
 export type Decision = 'PASS' | 'REJECT'
 
@@ -22,6 +27,11 @@ export type WorkflowErrorCode =
   | 'VERIFICATION_REQUIRED'
   | 'VERIFICATION_FAILED'
   | 'REASON_REQUIRED'
+  | 'KYC_DECISION_REQUIRED'
+  | 'KYC_CHECK_NOT_FOUND'
+  | 'KYC_CHECK_NOT_UNDECIDED'
+  | 'NOTE_REQUIRED'
+  | 'IDENTIFIER_NOT_FOUND'
 
 export class WorkflowError extends Error {
   constructor(public readonly code: WorkflowErrorCode, message: string) {
@@ -88,6 +98,9 @@ export function newApplication(
       currentStageIndex: 0,
       currentStageId: stages[0].id,
       verification: null,
+      kycChecks: null,
+      kycDecisions: [],
+      identifierReveals: [],
       documents: [],
       rejectionReason: null,
       organizationRequestId: null,
@@ -201,8 +214,10 @@ export function reviewDocument(
 }
 
 /**
- * The full history: stored events plus document reviews, oldest first.
- * Document reviews live on the documents (see DocumentRef.reviews).
+ * The full history, oldest first: stored events, plus document reviews, KYC
+ * decisions and identifier reveals. Those live on the application record,
+ * because the history entity's schema is hard to change (see D4 in
+ * B2B-085-PLAN.md).
  */
 export function fullHistory(
   app: Application,
@@ -222,38 +237,212 @@ export function fullHistory(
     }))
   )
 
-  return [...events, ...reviews].sort((a, b) =>
+  const decisions: ApplicationEvent[] = (app.kycDecisions ?? []).map(
+    (decision) => ({
+      applicationId: app.id,
+      type: 'KYC_DECIDED' as const,
+      stageId: decision.stageId,
+      stageLabel: decision.stageLabel,
+      actorType: 'REVIEWER' as const,
+      actor: decision.actor,
+      note: decision.note,
+      details: JSON.stringify({
+        kind: decision.kind,
+        decision: decision.decision,
+        reference: decision.checkReference,
+      }),
+      createdAt: decision.at,
+    })
+  )
+
+  const reveals: ApplicationEvent[] = (app.identifierReveals ?? []).map(
+    (reveal) => ({
+      applicationId: app.id,
+      type: 'IDENTIFIER_REVEALED' as const,
+      actorType: 'REVIEWER' as const,
+      actor: reveal.actor,
+      details: JSON.stringify({ field: reveal.field }),
+      createdAt: reveal.at,
+    })
+  )
+
+  return [...events, ...reviews, ...decisions, ...reveals].sort((a, b) =>
     a.createdAt.localeCompare(b.createdAt)
   )
 }
 
-/** Records the outcome of an eligibility check on the verification stage. */
+/**
+ * Records a verification run on the verification stage: the registry check,
+ * and for India applications every KYC check with its name match. A new run
+ * replaces the previous checks. Earlier decisions stay in the history but no
+ * longer count, because they were about other results.
+ */
 export function recordVerification(
   app: Application,
   stageId: string,
-  result: VerificationResult,
+  results: { registry: VerificationResult; kyc?: KycResult[] },
   actor: Actor,
   now: Date
 ): Transition {
   const stage = verificationStage(app, stageId)
   const at = now.toISOString()
+  const { registry } = results
+  const kycChecks = app.india
+    ? (results.kyc ?? []).map((result) => toKycCheck(result, app.companyName))
+    : null
 
   return {
-    patch: { verification: result, updatedAt: at },
+    patch: { verification: registry, kycChecks, updatedAt: at },
     events: [
       {
         ...stageEvent(stage, actor, at),
         type: 'VERIFICATION_RUN',
+        // Compact, and without identifiers, to stay within the 2000
+        // characters the history allows
         details: JSON.stringify({
-          status: result.status,
-          code: result.code,
-          message: result.message,
-          provider: result.provider,
-          reference: result.reference,
+          status: registry.status,
+          code: registry.code,
+          message: registry.message,
+          provider: registry.provider,
+          reference: registry.reference,
+          ...(kycChecks
+            ? {
+                kyc: kycChecks.map((check) => ({
+                  kind: check.kind,
+                  status: check.effectiveStatus,
+                  code: check.code,
+                  reference: check.reference,
+                  match: check.nameMatch?.band ?? null,
+                })),
+              }
+            : {}),
         }),
       },
     ],
     effect: 'NONE',
+  }
+}
+
+/**
+ * A reviewer accepts or rejects a KYC check the provider or the name match
+ * couldn't decide (MANUAL_REVIEW), with a note. They can change their mind
+ * until the stage passes; every decision is kept.
+ */
+export function decideKycCheck(
+  app: Application,
+  input: {
+    stageId: string
+    kind: KycCheckKind
+    decision: 'ACCEPTED' | 'REJECTED'
+    note: unknown
+  },
+  actor: Actor,
+  now: Date
+): Transition {
+  const stage = verificationStage(app, input.stageId)
+  const check = (app.kycChecks ?? []).find((c) => c.kind === input.kind)
+
+  if (!check) {
+    throw new WorkflowError(
+      'KYC_CHECK_NOT_FOUND',
+      'The application has no such check. Run the verification first.'
+    )
+  }
+
+  if (check.effectiveStatus !== 'MANUAL_REVIEW') {
+    throw new WorkflowError(
+      'KYC_CHECK_NOT_UNDECIDED',
+      'Only checks that need a manual review can be accepted or rejected'
+    )
+  }
+
+  const note = cleanDecisionNote(input.note)
+
+  if (!note) {
+    throw new WorkflowError(
+      'NOTE_REQUIRED',
+      'Explain the decision in a note of 10 to 1000 characters'
+    )
+  }
+
+  const at = now.toISOString()
+
+  return {
+    patch: {
+      kycDecisions: [
+        ...(app.kycDecisions ?? []),
+        {
+          kind: check.kind,
+          checkReference: check.reference,
+          decision: input.decision,
+          note,
+          stageId: stage.id,
+          stageLabel: stage.label,
+          actor: actor.id,
+          at,
+        },
+      ],
+      updatedAt: at,
+    },
+    events: [],
+    effect: 'NONE',
+  }
+}
+
+/** India identifiers as reviewers see them: PAN and account number masked */
+export function maskedIndia(app: Pick<Application, 'india'>) {
+  if (!app.india) {
+    return null
+  }
+
+  const { pan, importsOrExports, iec, udyam, bank } = app.india
+
+  return {
+    maskedPan: maskPan(pan),
+    importsOrExports,
+    iec: iec ?? null,
+    udyam: udyam ?? null,
+    maskedAccountNumber: maskAccount(bank.accountNumber),
+    ifsc: bank.ifsc,
+    accountHolderName: bank.holderName,
+  }
+}
+
+/**
+ * A reviewer opens a full PAN or account number. Allowed at any status, and
+ * always recorded in the history.
+ */
+export function revealIdentifier(
+  app: Application,
+  field: RevealableIdentifier,
+  actor: Actor,
+  now: Date
+): { value: string; transition: Transition } {
+  const value =
+    field === 'PAN' ? app.india?.pan : app.india?.bank?.accountNumber
+
+  if (!value) {
+    throw new WorkflowError(
+      'IDENTIFIER_NOT_FOUND',
+      'The application has no such identifier'
+    )
+  }
+
+  const at = now.toISOString()
+
+  return {
+    value,
+    transition: {
+      patch: {
+        identifierReveals: [
+          ...(app.identifierReveals ?? []),
+          { field, actor: actor.id, at },
+        ],
+        updatedAt: at,
+      },
+      events: [],
+      effect: 'NONE',
+    },
   }
 }
 
@@ -308,17 +497,26 @@ export function decide(
   }
 
   if (stage.type === 'VERIFICATION') {
-    if (!app.verification) {
+    const outcome = verificationOutcome(app)
+
+    if (outcome === 'NOT_RUN') {
       throw new WorkflowError(
         'VERIFICATION_REQUIRED',
         'Run the verification before passing this stage'
       )
     }
 
-    if (app.verification.status !== 'PASSED') {
+    if (outcome === 'BLOCKED') {
       throw new WorkflowError(
         'VERIFICATION_FAILED',
         'The verification failed, so this stage can only be rejected'
+      )
+    }
+
+    if (outcome === 'NEEDS_DECISION') {
+      throw new WorkflowError(
+        'KYC_DECISION_REQUIRED',
+        'Accept or reject every check that needs a manual review first'
       )
     }
   }

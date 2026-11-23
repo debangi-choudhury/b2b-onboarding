@@ -1,9 +1,14 @@
+import type { IndiaField } from './indiaIdentifiers'
+import { checkIndiaField, INDIA, parseYesNo } from './indiaIdentifiers'
+
 /**
  * Mirrors the server's rules (node/domain/validation.ts and documents.ts) so
  * people see problems before submitting. The server checks everything again.
+ * India identifiers use the same rules file as the server (indiaIdentifiers.ts).
  */
 
 export type FieldName =
+  | IndiaField
   | 'companyName'
   | 'tradeName'
   | 'registrationNumber'
@@ -33,6 +38,7 @@ export type ErrorCode =
   | 'TOO_LARGE'
   | 'EMPTY'
   | 'UNSUPPORTED_TYPE'
+  | 'PAN_NOT_BUSINESS'
 
 export interface FieldSpec {
   name: FieldName
@@ -139,6 +145,35 @@ export const ADDRESS_FIELDS: FieldSpec[] = [
   { name: 'address.receiverName', max: 100, pattern: NAME },
 ]
 
+/**
+ * Asked on the Company step when the country is India. The import or export
+ * answer is a Yes/No choice rendered separately, and IEC only shows for Yes.
+ * Lengths leave room for spaces people type; the rules strip them.
+ */
+export const INDIA_COMPANY_FIELDS: FieldSpec[] = [
+  { name: 'india.pan', required: true, max: 14 },
+  { name: 'india.iec', required: true, max: 14 },
+  { name: 'india.udyam', max: 24 },
+]
+
+/** The Bank account step, for India only */
+export const BANK_FIELDS: FieldSpec[] = [
+  { name: 'india.accountNumber', required: true, max: 24 },
+  { name: 'india.ifsc', required: true, max: 14 },
+  {
+    name: 'india.accountHolderName',
+    required: true,
+    max: 100,
+    autoComplete: 'organization',
+  },
+]
+
+export const isIndia = (country: string | undefined) => country === INDIA
+
+/** "yes" when the business imports or exports */
+export const importsOrExports = (answer: string | undefined) =>
+  parseYesNo(answer ?? '') === true
+
 /** ISO 3166-1 alpha-3 codes, as B2B Organizations expects */
 export const COUNTRIES = [
   'USA',
@@ -183,6 +218,26 @@ export function checkField(spec: FieldSpec, raw: string): ErrorCode | null {
   if (spec.pattern && !spec.pattern.test(value)) return 'INVALID_FORMAT'
 
   return null
+}
+
+/**
+ * Checks any form field. India fields follow the shared rules, where IEC
+ * depends on the import or export answer.
+ */
+export function checkAnyField(
+  spec: FieldSpec,
+  raw: string,
+  values: Partial<Record<FieldName, string>>
+): ErrorCode | null {
+  if (spec.name.startsWith('india.')) {
+    return checkIndiaField(
+      spec.name as IndiaField,
+      raw,
+      importsOrExports(values['india.importsOrExports'])
+    )
+  }
+
+  return checkField(spec, raw)
 }
 
 export function checkFile(file: File | null): ErrorCode | null {

@@ -1,0 +1,7 @@
+#import "./applicationFields.graphql"
+
+mutation DecideKycCheck($id: ID!, $stageId: ID!, $kind: KycCheckKind!, $decision: KycDecisionInput!, $note: String!) {
+  decideKycCheck(id: $id, stageId: $stageId, kind: $kind, decision: $decision, note: $note) @context(provider: "logixalpartnerus.b2b-onboarding") {
+    ...ApplicationDetail
+  }
+}

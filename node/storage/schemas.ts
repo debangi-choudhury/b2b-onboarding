@@ -5,8 +5,13 @@
  *
  * Change these rarely and deliberately. After any schema change, Master Data
  * re-indexes the entity and refuses further schema changes for about 12 hours
- * (HTTP 423). The app only writes a schema when its title differs from the
- * stored one, so change the title (rev N) whenever you change a schema.
+ * (HTTP 423). The app writes a schema only when the stored one has a
+ * different title or lacks one of the properties below (see ensureSchema).
+ *
+ * Keep the titles as they are. Version 0.2.2 rewrites the schema whenever the
+ * title differs from its own, so a new title would make the two versions undo
+ * each other's schema while both are installed in the account. Adding
+ * optional, unindexed properties is safe: 0.2.2 ignores them.
  *
  * Because of "required", documents are always written whole (PUT), never
  * patched: Master Data checks a PATCH body against "required" on its own.
@@ -43,6 +48,12 @@ export const APPLICATION_SCHEMA = {
     currentStageIndex: { type: 'integer' },
     currentStageId: { type: 'string', maxLength: 40 },
     verification: { type: ['object', 'null'] },
+    // India applications only (B2B-085). Never indexed: PAN and bank details
+    // must not be searchable. The API masks them; see maskedIndia.
+    india: { type: ['object', 'null'] },
+    kycChecks: { type: ['array', 'null'], items: { type: 'object' } },
+    kycDecisions: { type: ['array', 'null'], items: { type: 'object' } },
+    identifierReveals: { type: ['array', 'null'], items: { type: 'object' } },
     documents: { type: 'array', items: { type: 'object' } },
     rejectionReason: text(500),
     organizationRequestId: text(64),

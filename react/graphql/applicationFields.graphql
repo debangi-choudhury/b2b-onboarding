@@ -42,6 +42,39 @@ fragment ApplicationDetail on Application {
     registeredName
     checkedAt
   }
+  india {
+    maskedPan
+    importsOrExports
+    iec
+    udyam
+    maskedAccountNumber
+    ifsc
+    accountHolderName
+  }
+  kycChecks {
+    kind
+    status
+    effectiveStatus
+    code
+    message
+    provider
+    reference
+    registeredName
+    checkedAt
+    nameMatch {
+      comparedWith
+      registeredName
+      score
+      band
+    }
+    decision {
+      decision
+      note
+      actor
+      at
+    }
+  }
+  verificationOutcome
   documents {
     kind
     fileName

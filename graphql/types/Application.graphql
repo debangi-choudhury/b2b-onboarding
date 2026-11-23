@@ -31,6 +31,101 @@ enum EventType {
   APPROVED
   REJECTED
   APPROVAL_FAILED
+  KYC_DECIDED
+  IDENTIFIER_REVEALED
+}
+
+enum KycCheckKind {
+  PAN
+  IEC
+  UDYAM
+  BANK_ACCOUNT
+}
+
+enum KycStatus {
+  VERIFIED
+  FAILED
+  MANUAL_REVIEW
+}
+
+enum KycDecisionInput {
+  ACCEPT
+  REJECT
+}
+
+enum KycDecisionValue {
+  ACCEPTED
+  REJECTED
+}
+
+enum NameMatchBand {
+  STRONG
+  PARTIAL
+  NONE
+}
+
+enum RevealableIdentifier {
+  PAN
+  BANK_ACCOUNT
+}
+
+"Where the verification stage stands"
+enum VerificationOutcome {
+  "No verification yet"
+  NOT_RUN
+  "A check failed or was rejected: the stage can only be rejected"
+  BLOCKED
+  "A check needs a reviewer to accept or reject it"
+  NEEDS_DECISION
+  "The stage can pass"
+  READY
+}
+
+type NameMatch {
+  "The applicant's name the provider's name was compared with"
+  comparedWith: String!
+  registeredName: String!
+  "0 to 1"
+  score: Float!
+  band: NameMatchBand!
+}
+
+type KycDecision {
+  decision: KycDecisionValue!
+  note: String!
+  stageId: String!
+  stageLabel: String!
+  actor: String!
+  at: String!
+}
+
+type KycCheck {
+  kind: KycCheckKind!
+  "The provider's own status"
+  status: KycStatus!
+  "The worse of the provider's status and the name match's"
+  effectiveStatus: KycStatus!
+  code: String!
+  "Never contains a full PAN or account number"
+  message: String!
+  provider: String!
+  reference: String!
+  registeredName: String
+  checkedAt: String!
+  nameMatch: NameMatch
+  "The latest decision on this check, when it needed a manual review"
+  decision: KycDecision
+}
+
+"India identifiers, with the PAN and account number masked. See revealIdentifier."
+type IndiaIdentifiers {
+  maskedPan: String!
+  importsOrExports: Boolean!
+  iec: String
+  udyam: String
+  maskedAccountNumber: String!
+  ifsc: String!
+  accountHolderName: String!
 }
 
 enum ActorType {
@@ -147,6 +242,11 @@ type Application {
   currentStage: Stage
   currentStageIndex: Int
   verification: Verification
+  "India applications only"
+  india: IndiaIdentifiers
+  "India applications only, from the last verification run"
+  kycChecks: [KycCheck!]
+  verificationOutcome: VerificationOutcome
   documents: [DocumentRef!]
   rejectionReason: String
   organizationRequestId: String

@@ -7,6 +7,7 @@ import { WorkflowError } from '../domain/workflow'
 import type { DocumentStore } from '../storage/documentStore'
 import { MasterDataDocumentStore } from '../storage/masterDataDocumentStore'
 import { ApplicationRepository } from '../storage/repository'
+import { kycProviderFor } from '../verification/kycProviders'
 import { MockRegistryVerifier } from '../verification/mockRegistry'
 import type { EligibilityVerifier } from '../verification/types'
 
@@ -24,11 +25,17 @@ export function documentStore(ctx: Context): DocumentStore {
   return new MasterDataDocumentStore(ctx.clients.masterDataFiles)
 }
 
-export async function stageConfig(ctx: Context): Promise<StageConfig> {
-  const appId = process.env.VTEX_APP_ID as string
-  const settings = await ctx.clients.apps.getAppSettings(appId)
+function appSettings(ctx: Context): Promise<unknown> {
+  return ctx.clients.apps.getAppSettings(process.env.VTEX_APP_ID as string)
+}
 
-  return resolveStages(settings)
+export async function stageConfig(ctx: Context): Promise<StageConfig> {
+  return resolveStages(await appSettings(ctx))
+}
+
+/** The KYC provider the kycProvider setting picks */
+export async function kycProvider(ctx: Context) {
+  return kycProviderFor(await appSettings(ctx))
 }
 
 const DOCUMENT_ID = /^[A-Za-z0-9-]{1,64}$/

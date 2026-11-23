@@ -4,7 +4,7 @@ import { useCssHandles } from 'vtex.css-handles'
 import { useRuntime } from 'vtex.render-runtime'
 
 import { DropZone } from './components/DropZone'
-import { TextField } from './components/Fields'
+import { fieldId, TextField } from './components/Fields'
 import Receipt from './components/Receipt'
 import { NextSteps, Summary } from './components/SidePanels'
 import { Stepper } from './components/Stepper'
@@ -18,13 +18,17 @@ import type {
 } from './utils/fields'
 import {
   ADDRESS_FIELDS,
-  checkField,
+  BANK_FIELDS,
+  checkAnyField,
   checkFile,
   COMPANY_FIELDS,
   CONTACT_FIELDS,
   COUNTRIES,
   DOCUMENT_KINDS,
   formatSize,
+  importsOrExports,
+  INDIA_COMPANY_FIELDS,
+  isIndia,
 } from './utils/fields'
 import { documentLabels, fieldLabels, messages } from './utils/messages'
 import {
@@ -48,6 +52,7 @@ const CSS_HANDLES = [
   'demoNotice',
   'form',
   'fieldGrid',
+  'indiaSection',
   'reviewSection',
   'honeypot',
   'formError',
@@ -56,12 +61,20 @@ const CSS_HANDLES = [
   'aside',
 ] as const
 
-const ALL_FIELDS = [...COMPANY_FIELDS, ...CONTACT_FIELDS, ...ADDRESS_FIELDS]
-
 type Errors = Partial<Record<FieldName | DocumentKind, ErrorCode>>
 type Message = { id: string; defaultMessage: string }
+type Values = Partial<Record<FieldName, string>>
+
+type StepId =
+  | 'company'
+  | 'bank'
+  | 'contact'
+  | 'address'
+  | 'documents'
+  | 'review'
 
 interface Step {
+  id: StepId
   label: Message
   heading: Message
   help: Message
@@ -69,15 +82,27 @@ interface Step {
   documents: boolean
 }
 
-const STEPS: Step[] = [
+const COMPANY_STEP: Step = {
+  id: 'company',
+  label: messages.stepCompany,
+  heading: messages.companyTitle,
+  help: messages.companyHelp,
+  fields: COMPANY_FIELDS,
+  documents: false,
+}
+
+const BANK_STEP: Step = {
+  id: 'bank',
+  label: messages.stepBank,
+  heading: messages.bankTitle,
+  help: messages.bankHelp,
+  fields: BANK_FIELDS,
+  documents: false,
+}
+
+const OTHER_STEPS: Step[] = [
   {
-    label: messages.stepCompany,
-    heading: messages.companyTitle,
-    help: messages.companyHelp,
-    fields: COMPANY_FIELDS,
-    documents: false,
-  },
-  {
+    id: 'contact',
     label: messages.stepAdministrator,
     heading: messages.adminTitle,
     help: messages.contactHelp,
@@ -85,6 +110,7 @@ const STEPS: Step[] = [
     documents: false,
   },
   {
+    id: 'address',
     label: messages.stepAddress,
     heading: messages.addressTitle,
     help: messages.addressHelp,
@@ -92,6 +118,7 @@ const STEPS: Step[] = [
     documents: false,
   },
   {
+    id: 'documents',
     label: messages.stepDocuments,
     heading: messages.documentsTitle,
     help: messages.documentsHelp,
@@ -99,6 +126,7 @@ const STEPS: Step[] = [
     documents: true,
   },
   {
+    id: 'review',
     label: messages.stepReview,
     heading: messages.reviewTitle,
     help: messages.reviewHelp,
@@ -107,17 +135,21 @@ const STEPS: Step[] = [
   },
 ]
 
-const REVIEW_STEP = STEPS.length - 1
-
-/** Which step a field or document belongs to, to send people back to it */
-function stepOf(name: string): number {
-  const index = STEPS.findIndex(
-    (step) =>
-      step.fields.some((f) => f.name === name) ||
-      (step.documents && (DOCUMENT_KINDS as string[]).includes(name))
-  )
-
-  return index === -1 ? 0 : index
+/**
+ * Six steps for India, with the India identifiers on the Company step and a
+ * Bank account step after it. Five steps for every other country.
+ */
+function stepsFor(country: string | undefined): Step[] {
+  return isIndia(country)
+    ? [
+        {
+          ...COMPANY_STEP,
+          fields: [...COMPANY_FIELDS, ...INDIA_COMPANY_FIELDS],
+        },
+        BANK_STEP,
+        ...OTHER_STEPS,
+      ]
+    : [COMPANY_STEP, ...OTHER_STEPS]
 }
 
 function ApplyPage() {
@@ -129,8 +161,9 @@ function ApplyPage() {
 
   const [step, setStep] = useState(0)
   const [reached, setReached] = useState(0)
-  const [values, setValues] = useState<Partial<Record<FieldName, string>>>({
+  const [values, setValues] = useState<Values>({
     'address.country': 'USA',
+    'india.importsOrExports': 'no',
   })
 
   const [files, setFiles] = useState<Record<DocumentKind, File | null>>({
@@ -155,6 +188,24 @@ function ApplyPage() {
     headingRef.current?.focus()
   }, [step])
 
+  const country = values['address.country']
+  const india = isIndia(country)
+  const trades = importsOrExports(values['india.importsOrExports'])
+  const steps = stepsFor(country)
+  const reviewStep = steps.length - 1
+  const indexOf = (id: StepId) => steps.findIndex((s) => s.id === id)
+
+  /** Which step a field or document belongs to, to send people back to it */
+  const stepOf = (name: string) => {
+    const index = steps.findIndex(
+      (s) =>
+        s.fields.some((f) => f.name === name) ||
+        (s.documents && (DOCUMENT_KINDS as string[]).includes(name))
+    )
+
+    return index === -1 ? 0 : index
+  }
+
   const value = (name: FieldName) => values[name] ?? ''
 
   const setError = (name: FieldName | DocumentKind, code: ErrorCode | null) =>
@@ -163,13 +214,13 @@ function ApplyPage() {
   const stepErrors = (index: number): Errors => {
     const found: Errors = {}
 
-    STEPS[index].fields.forEach((spec) => {
-      const code = checkField(spec, value(spec.name))
+    steps[index].fields.forEach((spec) => {
+      const code = checkAnyField(spec, value(spec.name), values)
 
       if (code) found[spec.name] = code
     })
 
-    if (STEPS[index].documents) {
+    if (steps[index].documents) {
       DOCUMENT_KINDS.forEach((kind) => {
         const code = checkFile(files[kind])
 
@@ -188,7 +239,7 @@ function ApplyPage() {
 
   const submit = async () => {
     // Check every step again, in case something changed on the way
-    for (let index = 0; index < REVIEW_STEP; index++) {
+    for (let index = 0; index < reviewStep; index++) {
       const found = stepErrors(index)
 
       if (Object.keys(found).length > 0) {
@@ -202,10 +253,18 @@ function ApplyPage() {
 
     const form = new FormData()
 
-    ALL_FIELDS.forEach((spec) =>
-      form.append(spec.name, value(spec.name).trim())
+    // Only the fields of the steps shown: India fields only for India, and
+    // IEC only for businesses that import or export
+    steps.forEach((s) =>
+      s.fields
+        .filter((spec) => spec.name !== 'india.iec' || trades)
+        .forEach((spec) => form.append(spec.name, value(spec.name).trim()))
     )
-    form.append('address.country', values['address.country'] ?? 'USA')
+    form.append('address.country', country ?? 'USA')
+    if (india) {
+      form.append('india.importsOrExports', trades ? 'yes' : 'no')
+    }
+
     form.append('website', website)
     DOCUMENT_KINDS.forEach((kind) => form.append(kind, files[kind] as File))
 
@@ -244,7 +303,7 @@ function ApplyPage() {
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (step === REVIEW_STEP) {
+    if (step === reviewStep) {
       submit()
 
       return
@@ -255,8 +314,8 @@ function ApplyPage() {
     setErrors((prev) => {
       const next = { ...prev }
 
-      STEPS[step].fields.forEach((f) => delete next[f.name])
-      if (STEPS[step].documents) DOCUMENT_KINDS.forEach((k) => delete next[k])
+      steps[step].fields.forEach((f) => delete next[f.name])
+      if (steps[step].documents) DOCUMENT_KINDS.forEach((k) => delete next[k])
 
       return { ...next, ...found }
     })
@@ -270,31 +329,53 @@ function ApplyPage() {
     goTo(step + 1)
   }
 
-  const country = (
+  const select = (
+    name: FieldName,
+    options: Array<{ value: string; label: string }>,
+    onSelected?: (selected: string) => void
+  ) => (
     <div>
-      <label htmlFor="b2b-onboarding-address-country" style={label}>
-        {intl.formatMessage(fieldLabels['address.country'])}
+      <label htmlFor={fieldId(name)} style={label}>
+        {intl.formatMessage(fieldLabels[name])}
       </label>
       <select
-        id="b2b-onboarding-address-country"
-        value={values['address.country']}
+        id={fieldId(name)}
+        value={value(name)}
         onChange={(e) => {
           // Read the value now: React 16 reuses the event object, so it's
           // already cleared by the time the updater function below runs.
           const selected = e.target.value
 
-          setValues((prev) => ({ ...prev, 'address.country': selected }))
+          setValues((prev) => ({ ...prev, [name]: selected }))
+          onSelected?.(selected)
         }}
         style={input(false)}
       >
-        {COUNTRIES.map((code) => (
-          <option key={code} value={code}>
-            {code}
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         ))}
       </select>
     </div>
   )
+
+  const countrySelect = select(
+    'address.country',
+    COUNTRIES.map((code) => ({ value: code, label: code })),
+    (selected) => {
+      // The steps change when India is chosen or left, so steps reached
+      // earlier no longer line up: make people walk through them again.
+      if (isIndia(selected) !== india) {
+        setReached(0)
+      }
+    }
+  )
+
+  const tradeSelect = select('india.importsOrExports', [
+    { value: 'no', label: intl.formatMessage(messages.no) },
+    { value: 'yes', label: intl.formatMessage(messages.yes) },
+  ])
 
   const textField = (spec: FieldSpec) => (
     <TextField
@@ -303,7 +384,9 @@ function ApplyPage() {
       value={value(spec.name)}
       error={errors[spec.name] ?? null}
       onChange={(next) => setValues((prev) => ({ ...prev, [spec.name]: next }))}
-      onBlur={() => setError(spec.name, checkField(spec, value(spec.name)))}
+      onBlur={() =>
+        setError(spec.name, checkAnyField(spec, value(spec.name), values))
+      }
     />
   )
 
@@ -313,7 +396,7 @@ function ApplyPage() {
     gap: '18px 20px',
   }
 
-  const demoNotice = (
+  const notice = (text: Message) => (
     <div
       role="note"
       className={handles.demoNotice}
@@ -346,7 +429,88 @@ function ApplyPage() {
         <path d="M12 8v5" />
         <path d="M12 16h.01" />
       </svg>
-      <span>{intl.formatMessage(messages.demoNotice)}</span>
+      <span>{intl.formatMessage(text)}</span>
+    </div>
+  )
+
+  const demoNotice = notice(messages.demoNotice)
+
+  const current = steps[step] ?? steps[0]
+
+  const companyFields = (
+    <>
+      <div className={handles.fieldGrid} style={grid}>
+        {countrySelect}
+        {COMPANY_FIELDS.map(textField)}
+      </div>
+      {india && (
+        <section
+          className={handles.indiaSection}
+          aria-labelledby="b2b-onboarding-india-title"
+          style={{
+            marginTop: 28,
+            paddingTop: 24,
+            borderTop: `1px solid ${color.border}`,
+          }}
+        >
+          <h3
+            id="b2b-onboarding-india-title"
+            style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 700 }}
+          >
+            {intl.formatMessage(messages.indiaTitle)}
+          </h3>
+          <p
+            style={{ margin: '0 0 18px', fontSize: 14, color: color.textSoft }}
+          >
+            {intl.formatMessage(messages.indiaHelp)}
+          </p>
+          {notice(messages.indiaDemoNotice)}
+          <div style={grid}>
+            {INDIA_COMPANY_FIELDS.filter((f) => f.name === 'india.pan').map(
+              textField
+            )}
+            {INDIA_COMPANY_FIELDS.filter((f) => f.name === 'india.udyam').map(
+              textField
+            )}
+            {tradeSelect}
+            {trades &&
+              INDIA_COMPANY_FIELDS.filter((f) => f.name === 'india.iec').map(
+                textField
+              )}
+          </div>
+        </section>
+      )}
+    </>
+  )
+
+  const addressFields = (
+    <div className={handles.fieldGrid} style={grid}>
+      {current.fields.map(textField)}
+      <p
+        style={{
+          gridColumn: '1 / -1',
+          margin: 0,
+          fontSize: 14,
+          color: color.textSoft,
+        }}
+      >
+        {intl.formatMessage(messages.countryOnCompanyStep, { country })}{' '}
+        <button
+          type="button"
+          onClick={() => goTo(indexOf('company'))}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: color.accent,
+            font: 'inherit',
+            fontWeight: 600,
+            cursor: 'pointer',
+            padding: 0,
+          }}
+        >
+          {intl.formatMessage(messages.changeCountry)}
+        </button>
+      </p>
     </div>
   )
 
@@ -362,28 +526,50 @@ function ApplyPage() {
     value('address.city'),
     value('address.state'),
     value('address.postalCode'),
-    values['address.country'],
+    country,
   ]
     .filter(Boolean)
     .join(', ')
 
+  const rowsOf = (fields: FieldSpec[]) =>
+    fields
+      .filter((f) => f.name !== 'india.iec' || trades)
+      .map((f) => ({
+        label: intl.formatMessage(fieldLabels[f.name]),
+        value: value(f.name),
+      }))
+
   const reviewSections = [
     {
-      step: 0,
-      rows: COMPANY_FIELDS.map((f) => ({
-        label: intl.formatMessage(fieldLabels[f.name]),
-        value: value(f.name),
-      })),
+      id: 'company' as StepId,
+      rows: [
+        {
+          label: intl.formatMessage(fieldLabels['address.country']),
+          value: country ?? '',
+        },
+        ...rowsOf(COMPANY_FIELDS),
+        ...(india
+          ? [
+              ...rowsOf(
+                INDIA_COMPANY_FIELDS.filter((f) => f.name !== 'india.iec')
+              ),
+              {
+                label: intl.formatMessage(
+                  fieldLabels['india.importsOrExports']
+                ),
+                value: intl.formatMessage(trades ? messages.yes : messages.no),
+              },
+              ...rowsOf(
+                INDIA_COMPANY_FIELDS.filter((f) => f.name === 'india.iec')
+              ),
+            ]
+          : []),
+      ],
     },
+    ...(india ? [{ id: 'bank' as StepId, rows: rowsOf(BANK_FIELDS) }] : []),
+    { id: 'contact' as StepId, rows: rowsOf(CONTACT_FIELDS) },
     {
-      step: 1,
-      rows: CONTACT_FIELDS.map((f) => ({
-        label: intl.formatMessage(fieldLabels[f.name]),
-        value: value(f.name),
-      })),
-    },
-    {
-      step: 2,
+      id: 'address' as StepId,
       rows: [
         { label: intl.formatMessage(messages.summaryAddress), value: address },
         { label: '', value: place },
@@ -394,7 +580,7 @@ function ApplyPage() {
       ],
     },
     {
-      step: 3,
+      id: 'documents' as StepId,
       rows: DOCUMENT_KINDS.map((kind) => ({
         label: intl.formatMessage(documentLabels[kind]),
         value: files[kind]
@@ -436,8 +622,6 @@ function ApplyPage() {
         : '',
     },
   ].filter((row) => row.value)
-
-  const current = STEPS[step]
 
   return (
     <div
@@ -489,7 +673,7 @@ function ApplyPage() {
             </p>
 
             <Stepper
-              steps={STEPS.map((s) => s.label)}
+              steps={steps.map((s) => s.label)}
               current={step}
               reached={reached}
               onSelect={goTo}
@@ -540,22 +724,13 @@ function ApplyPage() {
                 </p>
 
                 {current.documents && demoNotice}
+                {current.id === 'bank' && notice(messages.indiaDemoNotice)}
 
-                {current.fields.length > 0 && (
+                {current.id === 'company' && companyFields}
+                {current.id === 'address' && addressFields}
+                {(current.id === 'bank' || current.id === 'contact') && (
                   <div className={handles.fieldGrid} style={grid}>
-                    {step === 2 ? (
-                      <>
-                        {current.fields
-                          .filter((f) => f.name !== 'address.receiverName')
-                          .map(textField)}
-                        {country}
-                        {current.fields
-                          .filter((f) => f.name === 'address.receiverName')
-                          .map(textField)}
-                      </>
-                    ) : (
-                      current.fields.map(textField)
-                    )}
+                    {current.fields.map(textField)}
                   </div>
                 )}
 
@@ -576,7 +751,7 @@ function ApplyPage() {
                   </div>
                 )}
 
-                {step === REVIEW_STEP && (
+                {current.id === 'review' && (
                   <div
                     style={{
                       display: 'flex',
@@ -585,82 +760,91 @@ function ApplyPage() {
                     }}
                   >
                     {demoNotice}
-                    {reviewSections.map((section) => (
-                      <section
-                        key={section.step}
-                        className={handles.reviewSection}
-                        style={{
-                          border: `1px solid ${color.border}`,
-                          borderRadius: 12,
-                          padding: '16px 20px',
-                        }}
-                      >
-                        <div
+                    {reviewSections.map((section) => {
+                      const index = indexOf(section.id)
+                      const sectionLabel = intl.formatMessage(
+                        steps[index].label
+                      )
+
+                      return (
+                        <section
+                          key={section.id}
+                          className={handles.reviewSection}
                           style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            gap: 12,
-                            marginBottom: 8,
+                            border: `1px solid ${color.border}`,
+                            borderRadius: 12,
+                            padding: '16px 20px',
                           }}
                         >
-                          <h3
-                            style={{ margin: 0, fontSize: 16, fontWeight: 700 }}
-                          >
-                            {intl.formatMessage(STEPS[section.step].label)}
-                          </h3>
-                          <button
-                            type="button"
-                            onClick={() => goTo(section.step)}
+                          <div
                             style={{
-                              background: 'none',
-                              border: 'none',
-                              color: color.accent,
-                              font: 'inherit',
-                              fontSize: 14,
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              minHeight: 44,
-                              padding: '0 8px',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              gap: 12,
+                              marginBottom: 8,
                             }}
-                            aria-label={`${intl.formatMessage(
-                              messages.edit
-                            )}: ${intl.formatMessage(
-                              STEPS[section.step].label
-                            )}`}
                           >
-                            {intl.formatMessage(messages.edit)}
-                          </button>
-                        </div>
-                        <dl
-                          style={{
-                            margin: 0,
-                            display: 'grid',
-                            gridTemplateColumns: 'minmax(0, 200px) 1fr',
-                            gap: '6px 16px',
-                            fontSize: 14,
-                          }}
-                        >
-                          {section.rows
-                            .filter((row) => row.value)
-                            .map((row, i) => (
-                              <React.Fragment key={`${row.label}-${i}`}>
-                                <dt style={{ color: color.textMuted }}>
-                                  {row.label}
-                                </dt>
-                                <dd
-                                  style={{
-                                    margin: 0,
-                                    overflowWrap: 'anywhere',
-                                  }}
-                                >
-                                  {row.value}
-                                </dd>
-                              </React.Fragment>
-                            ))}
-                        </dl>
-                      </section>
-                    ))}
+                            <h3
+                              style={{
+                                margin: 0,
+                                fontSize: 16,
+                                fontWeight: 700,
+                              }}
+                            >
+                              {sectionLabel}
+                            </h3>
+                            <button
+                              type="button"
+                              onClick={() => goTo(index)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: color.accent,
+                                font: 'inherit',
+                                fontSize: 14,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                minHeight: 44,
+                                padding: '0 8px',
+                              }}
+                              aria-label={`${intl.formatMessage(
+                                messages.edit
+                              )}: ${sectionLabel}`}
+                            >
+                              {intl.formatMessage(messages.edit)}
+                            </button>
+                          </div>
+                          <dl
+                            style={{
+                              margin: 0,
+                              display: 'grid',
+                              gridTemplateColumns: 'minmax(0, 200px) 1fr',
+                              gap: '6px 16px',
+                              fontSize: 14,
+                            }}
+                          >
+                            {section.rows
+                              .filter((row) => row.value)
+                              .map((row, i) => (
+                                <React.Fragment key={`${row.label}-${i}`}>
+                                  <dt style={{ color: color.textMuted }}>
+                                    {row.label}
+                                  </dt>
+                                  <dd
+                                    style={{
+                                      margin: 0,
+                                      overflowWrap: 'anywhere',
+                                    }}
+                                  >
+                                    {row.value}
+                                  </dd>
+                                </React.Fragment>
+                              ))}
+                          </dl>
+                        </section>
+                      )
+                    })}
                   </div>
                 )}
 
@@ -722,7 +906,7 @@ function ApplyPage() {
                   <span style={{ fontSize: 13, color: color.textMuted }}>
                     {intl.formatMessage(messages.stepOf, {
                       current: step + 1,
-                      total: STEPS.length,
+                      total: steps.length,
                     })}
                   </span>
                   <button
@@ -731,11 +915,11 @@ function ApplyPage() {
                     disabled={submitting}
                     style={primaryButton(submitting)}
                   >
-                    {step === REVIEW_STEP
+                    {step === reviewStep
                       ? intl.formatMessage(
                           submitting ? messages.submitting : messages.submit
                         )
-                      : step === REVIEW_STEP - 1
+                      : step === reviewStep - 1
                       ? intl.formatMessage(messages.continueReview)
                       : intl.formatMessage(messages.continue)}
                   </button>

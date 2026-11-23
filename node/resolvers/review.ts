@@ -2,26 +2,34 @@ import { NotFoundError, UserInputError } from '@vtex/api'
 
 import { reviewerFromToken } from '../domain/actor'
 import { toOrganizationInput } from '../domain/organization'
+import { latestDecision, verificationOutcome } from '../domain/kycOutcome'
 import type {
   Application,
   ApplicationStatus,
   DocumentRef,
+  KycCheckKind,
+  RevealableIdentifier,
 } from '../domain/types'
 import type { Decision } from '../domain/workflow'
 import {
   completeApproval,
   currentStage,
   decide,
+  decideKycCheck,
   documentStatus,
   failedApproval,
   fullHistory,
+  maskedIndia,
   recordVerification,
+  revealIdentifier,
   reviewDocument,
   verificationStage,
 } from '../domain/workflow'
+import { runKycChecks } from '../verification/kyc'
 import {
   applyTransition,
   documentStore,
+  kycProvider,
   loadApplication,
   repository,
   stageConfig,
@@ -30,6 +38,8 @@ import {
 } from './shared'
 
 const STATUSES: ApplicationStatus[] = ['IN_REVIEW', 'APPROVED', 'REJECTED']
+const KYC_KINDS: KycCheckKind[] = ['PAN', 'IEC', 'UDYAM', 'BANK_ACCOUNT']
+const REVEALABLE: RevealableIdentifier[] = ['PAN', 'BANK_ACCOUNT']
 
 function actor(ctx: Context) {
   return reviewerFromToken(ctx.vtex.adminUserAuthToken)
@@ -118,7 +128,21 @@ export const reviewQueries = {
   onboardingApplication: (_: unknown, { id }: { id: string }, ctx: Context) =>
     loadApplication(ctx, id),
 
-  onboardingStages: (_: unknown, __: unknown, ctx: Context) => stageConfig(ctx),
+  onboardingStages: async (_: unknown, __: unknown, ctx: Context) => {
+    const [stages, kyc] = await Promise.all([
+      stageConfig(ctx),
+      kycProvider(ctx),
+    ])
+
+    // A bad KYC provider setting is reported with the stage problems, so
+    // admins see it on the review screen.
+    return {
+      ...stages,
+      problems: kyc.problem
+        ? [...stages.problems, kyc.problem]
+        : stages.problems,
+    }
+  },
 
   /**
    * A document's file for the review screen, as base64. Files are at most
@@ -163,12 +187,16 @@ export const reviewMutations = {
       verificationStage(app, stageId)
 
       const now = new Date()
-      const result = await verifier.verify(app, now)
+      const { provider } = await kycProvider(ctx)
+      const [registry, kyc] = await Promise.all([
+        verifier.verify(app, now),
+        runKycChecks(provider, app, now),
+      ])
 
       return await applyTransition(
         ctx,
         app,
-        recordVerification(app, stageId, result, actor(ctx), now)
+        recordVerification(app, stageId, { registry, kyc }, actor(ctx), now)
       )
     } catch (e) {
       return toUserError(e)
@@ -204,6 +232,73 @@ export const reviewMutations = {
           new Date()
         )
       )
+    } catch (e) {
+      return toUserError(e)
+    }
+  },
+
+  decideKycCheck: async (
+    _: unknown,
+    args: {
+      id: string
+      stageId: string
+      kind: KycCheckKind
+      decision: 'ACCEPT' | 'REJECT'
+      note: string
+    },
+    ctx: Context
+  ) => {
+    if (!KYC_KINDS.includes(args.kind)) {
+      throw new UserInputError('Invalid check')
+    }
+
+    const app = await loadApplication(ctx, args.id)
+
+    try {
+      return await applyTransition(
+        ctx,
+        app,
+        decideKycCheck(
+          app,
+          {
+            stageId: args.stageId,
+            kind: args.kind,
+            decision: args.decision === 'ACCEPT' ? 'ACCEPTED' : 'REJECTED',
+            note: args.note,
+          },
+          actor(ctx),
+          new Date()
+        )
+      )
+    } catch (e) {
+      return toUserError(e)
+    }
+  },
+
+  /** Returns one full identifier and records that this reviewer opened it */
+  revealIdentifier: async (
+    _: unknown,
+    args: { id: string; field: RevealableIdentifier },
+    ctx: Context
+  ) => {
+    if (!REVEALABLE.includes(args.field)) {
+      throw new UserInputError('Invalid identifier')
+    }
+
+    const app = await loadApplication(ctx, args.id)
+
+    try {
+      const { value, transition } = revealIdentifier(
+        app,
+        args.field,
+        actor(ctx),
+        new Date()
+      )
+
+      // Record first: if recording fails, the value isn't returned
+      await applyTransition(ctx, app, transition)
+
+      return value
     } catch (e) {
       return toUserError(e)
     }
@@ -249,6 +344,20 @@ export const applicationFields = {
 
   events: async (app: Application, _: unknown, ctx: Context) =>
     fullHistory(app, await repository(ctx).events(app.id)),
+
+  // Never the raw record: the GraphQL type has no field for a full PAN or
+  // account number, and this resolver doesn't pass them on either.
+  india: (app: Application) => maskedIndia(app),
+
+  kycChecks: (app: Application) =>
+    app.kycChecks
+      ? app.kycChecks.map((check) => ({
+          ...check,
+          decision: latestDecision(app, check),
+        }))
+      : null,
+
+  verificationOutcome: (app: Application) => verificationOutcome(app),
 }
 
 export const documentFields = {

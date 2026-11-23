@@ -3,7 +3,12 @@ import { useIntl } from 'react-intl'
 import { useCssHandles } from 'vtex.css-handles'
 
 import type { ErrorCode, FieldSpec } from '../utils/fields'
-import { errorLabels, fieldLabels, messages } from '../utils/messages'
+import {
+  errorLabels,
+  fieldHints,
+  fieldLabels,
+  messages,
+} from '../utils/messages'
 import { color, input, label } from '../utils/theme'
 
 const CSS_HANDLES = ['field', 'fieldLabel', 'fieldInput', 'fieldError'] as const
@@ -27,6 +32,10 @@ export function TextField({
   const intl = useIntl()
   const handles = useCssHandles(CSS_HANDLES)
   const id = fieldId(spec.name)
+  const hint = fieldHints[spec.name]
+  const describedBy = [hint && `${id}-hint`, error && `${id}-error`]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <div className={handles.field}>
@@ -39,6 +48,14 @@ export function TextField({
           </span>
         )}
       </label>
+      {hint && (
+        <p
+          id={`${id}-hint`}
+          style={{ margin: '0 0 6px', fontSize: 13, color: color.textMuted }}
+        >
+          {intl.formatMessage(hint)}
+        </p>
+      )}
       <input
         id={id}
         name={spec.name}
@@ -48,7 +65,7 @@ export function TextField({
         autoComplete={spec.autoComplete}
         required={spec.required}
         aria-invalid={!!error}
-        aria-describedby={error ? `${id}-error` : undefined}
+        aria-describedby={describedBy || undefined}
         className={handles.fieldInput}
         style={input(!!error)}
         onChange={(e) => onChange(e.target.value)}

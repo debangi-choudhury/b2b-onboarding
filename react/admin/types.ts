@@ -47,6 +47,50 @@ export interface HistoryEvent {
   createdAt: string
 }
 
+export type KycCheckKind = 'PAN' | 'IEC' | 'UDYAM' | 'BANK_ACCOUNT'
+export type KycStatus = 'VERIFIED' | 'FAILED' | 'MANUAL_REVIEW'
+export type RevealableIdentifier = 'PAN' | 'BANK_ACCOUNT'
+export type VerificationOutcome =
+  | 'NOT_RUN'
+  | 'BLOCKED'
+  | 'NEEDS_DECISION'
+  | 'READY'
+
+export interface KycCheckInfo {
+  kind: KycCheckKind
+  status: KycStatus
+  effectiveStatus: KycStatus
+  code: string
+  message: string
+  provider: string
+  reference: string
+  registeredName: string | null
+  checkedAt: string
+  nameMatch: {
+    comparedWith: string
+    registeredName: string
+    score: number
+    band: 'STRONG' | 'PARTIAL' | 'NONE'
+  } | null
+  decision: {
+    decision: 'ACCEPTED' | 'REJECTED'
+    note: string
+    actor: string
+    at: string
+  } | null
+}
+
+/** Masked by the API: the full values only come from revealIdentifier */
+export interface IndiaInfo {
+  maskedPan: string
+  importsOrExports: boolean
+  iec: string | null
+  udyam: string | null
+  maskedAccountNumber: string
+  ifsc: string
+  accountHolderName: string
+}
+
 export interface ApplicationDetail {
   id: string
   reference: string
@@ -83,6 +127,9 @@ export interface ApplicationDetail {
     registeredName: string | null
     checkedAt: string
   } | null
+  india: IndiaInfo | null
+  kycChecks: KycCheckInfo[] | null
+  verificationOutcome: VerificationOutcome | null
   documents: DocumentInfo[]
   rejectionReason: string | null
   organizationId: string | null

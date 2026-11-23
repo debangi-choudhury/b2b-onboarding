@@ -1,3 +1,5 @@
+import type { NameMatch } from './nameMatch'
+
 export type StageType = 'REVIEW' | 'VERIFICATION' | 'APPROVAL'
 
 export interface Stage {
@@ -20,6 +22,78 @@ export interface VerificationResult {
   reference: string
   registeredName?: string
   checkedAt: string
+}
+
+/** The checks a KYC provider runs for India applications */
+export type KycCheckKind = 'PAN' | 'IEC' | 'UDYAM' | 'BANK_ACCOUNT'
+
+export type KycStatus = 'VERIFIED' | 'FAILED' | 'MANUAL_REVIEW'
+
+/** What a KYC provider returns for one check */
+export interface KycResult {
+  kind: KycCheckKind
+  status: KycStatus
+  /** Machine-readable reason, such as NOT_FOUND or PROVIDER_UNDECIDED */
+  code: string
+  /** Shown to reviewers. Never contains a full PAN or account number. */
+  message: string
+  provider: string
+  /** The provider's reference for this check */
+  reference: string
+  /** The name the provider has on record, for name matching */
+  registeredName?: string
+  checkedAt: string
+}
+
+/** A provider's result as stored on the application, with the name match */
+export interface KycCheck extends KycResult {
+  /** Set when the provider returned a registered name */
+  nameMatch?: NameMatch | null
+  /** The worse of the provider's status and the name match's */
+  effectiveStatus: KycStatus
+}
+
+/**
+ * A reviewer's decision on a check that needed one (MANUAL_REVIEW). Kept in
+ * their own list, not on the check, so running verification again (which
+ * replaces the checks) never loses one from the history.
+ */
+export interface KycDecision {
+  kind: KycCheckKind
+  /** The provider reference of the check decided */
+  checkReference: string
+  decision: 'ACCEPTED' | 'REJECTED'
+  note: string
+  stageId: string
+  stageLabel: string
+  actor: string
+  at: string
+}
+
+/** Identifiers a reviewer can open in full. Each opening is recorded. */
+export type RevealableIdentifier = 'PAN' | 'BANK_ACCOUNT'
+
+export interface IdentifierReveal {
+  field: RevealableIdentifier
+  actor: string
+  at: string
+}
+
+export interface BankAccount {
+  accountNumber: string
+  ifsc: string
+  holderName: string
+}
+
+/** Business identifiers asked for when the country is India (IND) */
+export interface IndiaIdentifiers {
+  pan: string
+  importsOrExports: boolean
+  /** Required when importsOrExports is true */
+  iec?: string
+  /** MSMEs only */
+  udyam?: string
+  bank: BankAccount
 }
 
 export interface Address {
@@ -49,6 +123,8 @@ export interface ApplicationInput {
   taxId?: string
   contact: Contact
   address: Address
+  /** Only when address.country is IND. Older applications don't have it. */
+  india?: IndiaIdentifiers | null
 }
 
 export type DocumentStatus = 'NEEDS_REVIEW' | 'ACCEPTED' | 'REJECTED'
@@ -91,6 +167,10 @@ export interface Application extends ApplicationInput {
   currentStageIndex: number
   currentStageId: string
   verification?: VerificationResult | null
+  /** India applications only, from the last verification run */
+  kycChecks?: KycCheck[] | null
+  kycDecisions?: KycDecision[] | null
+  identifierReveals?: IdentifierReveal[] | null
   documents: DocumentRef[]
   rejectionReason?: string | null
   organizationRequestId?: string | null
@@ -116,6 +196,9 @@ export type EventType =
   | 'APPROVED'
   | 'REJECTED'
   | 'APPROVAL_FAILED'
+  // Not stored as events: merged into the history from the application record
+  | 'KYC_DECIDED'
+  | 'IDENTIFIER_REVEALED'
 
 export interface ApplicationEvent {
   id?: string
