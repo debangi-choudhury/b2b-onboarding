@@ -5,6 +5,10 @@
   "minReplicas": 2,
   "maxReplicas": 4,
   "workers": 1,
+  "rateLimitPerReplica": {
+    "perMinute": 300,
+    "concurrent": 10
+  },
   "routes": {
     "apply": {
       "path": "/_v/b2b-onboarding/apply",

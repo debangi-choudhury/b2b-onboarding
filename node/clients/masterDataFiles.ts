@@ -32,6 +32,8 @@ export class MasterDataFiles extends ExternalClient {
       {
         headers: { Accept: 'application/vnd.vtex.ds.v10+json' },
         metric: 'md-files-create',
+        // Creates a document: a retry after a timeout could create it twice
+        retries: 0,
       }
     )
 
@@ -58,6 +60,7 @@ export class MasterDataFiles extends ExternalClient {
       {
         headers: form.getHeaders(),
         metric: 'md-files-upload',
+        retries: 0,
         timeout: 30000,
       }
     )

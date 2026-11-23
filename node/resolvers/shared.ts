@@ -25,17 +25,22 @@ export function documentStore(ctx: Context): DocumentStore {
   return new MasterDataDocumentStore(ctx.clients.masterDataFiles)
 }
 
-function appSettings(ctx: Context): Promise<unknown> {
+/** This app's settings. Read once per request and passed on. */
+export function appSettings(ctx: Context): Promise<unknown> {
+  // This @vtex/api version has no ctx.vtex.appId; the runtime sets the env var
   return ctx.clients.apps.getAppSettings(process.env.VTEX_APP_ID as string)
 }
 
-export async function stageConfig(ctx: Context): Promise<StageConfig> {
-  return resolveStages(await appSettings(ctx))
+export async function stageConfig(
+  ctx: Context,
+  settings?: unknown
+): Promise<StageConfig> {
+  return resolveStages(settings ?? (await appSettings(ctx)))
 }
 
 /** The KYC provider the kycProvider setting picks */
-export async function kycProvider(ctx: Context) {
-  return kycProviderFor(await appSettings(ctx))
+export async function kycProvider(ctx: Context, settings?: unknown) {
+  return kycProviderFor(settings ?? (await appSettings(ctx)))
 }
 
 const DOCUMENT_ID = /^[A-Za-z0-9-]{1,64}$/

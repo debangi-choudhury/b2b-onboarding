@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-23
+
+Changes from a review against VTEX's IO guidance (https://github.com/vtex/skills).
+
+### Fixed
+
+- Calls that create something (history events, document records, file uploads and the B2B organization request) are no longer retried automatically. A retry after a timeout could have created them twice, including a second organization request.
+- The Admin stage settings read the app settings once instead of twice.
+- The public apply and status endpoints no longer return the details and stack of an unexpected error. They log the message and answer `503` with `{"code":"UNAVAILABLE"}`, which the pages show as their usual "try again" message.
+
+### Changed
+
+- The service has a platform rate limit of 300 requests a minute and 10 at a time per replica, in addition to the per-visitor limit on the public form.
+
 ## [0.3.0] - 2026-11-23
 
 ### Added

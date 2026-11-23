@@ -84,7 +84,12 @@ export class AccountMasterData extends ExternalClient {
       const result = await this.http.post<{ DocumentId: string }>(
         `${entity}/documents`,
         fields,
-        { params: schema ? { _schema: schema } : {}, metric: 'amd-create' }
+        {
+          params: schema ? { _schema: schema } : {},
+          metric: 'amd-create',
+          // Creates a document: a retry after a timeout could create it twice
+          retries: 0,
+        }
       )
 
       return result.DocumentId

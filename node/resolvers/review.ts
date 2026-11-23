@@ -27,6 +27,7 @@ import {
 } from '../domain/workflow'
 import { runKycChecks } from '../verification/kyc'
 import {
+  appSettings,
   applyTransition,
   documentStore,
   kycProvider,
@@ -129,9 +130,11 @@ export const reviewQueries = {
     loadApplication(ctx, id),
 
   onboardingStages: async (_: unknown, __: unknown, ctx: Context) => {
+    // One settings read for both
+    const settings = await appSettings(ctx)
     const [stages, kyc] = await Promise.all([
-      stageConfig(ctx),
-      kycProvider(ctx),
+      stageConfig(ctx, settings),
+      kycProvider(ctx, settings),
     ])
 
     // A bad KYC provider setting is reported with the stage problems, so

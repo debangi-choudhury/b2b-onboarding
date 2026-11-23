@@ -13,7 +13,7 @@ import {
   reviewMutations,
   reviewQueries,
 } from './resolvers/review'
-import { apply, status } from './routes/applicant'
+import { apply, guarded, status } from './routes/applicant'
 
 const clients: ClientsConfig<Clients> = {
   implementation: Clients,
@@ -32,8 +32,8 @@ declare global {
 export default new Service<Clients, RecorderState, ParamsContext>({
   clients,
   routes: {
-    apply: method({ POST: apply }),
-    status: method({ POST: status }),
+    apply: method({ POST: guarded('apply', apply) }),
+    status: method({ POST: guarded('status', status) }),
   },
   graphql: {
     resolvers: {

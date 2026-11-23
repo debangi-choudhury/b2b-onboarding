@@ -37,6 +37,31 @@ function reply(ctx: Context, httpStatus: number, body: unknown) {
   ctx.set('Cache-Control', 'no-store')
 }
 
+/**
+ * Public routes must not pass an unexpected failure to the caller: the
+ * default error body carries the error's stack and details. Log the message
+ * and status only (never the error object, which can hold the request), and
+ * answer with a plain code the pages already handle.
+ */
+export function guarded(
+  route: string,
+  handler: (ctx: Context) => Promise<void>
+) {
+  return async (ctx: Context) => {
+    try {
+      await handler(ctx)
+    } catch (e) {
+      ctx.vtex.logger.error({
+        message: 'Applicant route failed',
+        route,
+        error: e instanceof Error ? e.message : String(e),
+        status: (e as { response?: { status?: number } }).response?.status,
+      })
+      reply(ctx, 503, { code: 'UNAVAILABLE' })
+    }
+  }
+}
+
 /** A reference clash is about 1 in a trillion; try a few anyway. */
 async function freeReference(
   repo: ReturnType<typeof repository>,
