@@ -1,0 +1,8 @@
+{
+  "store.custom#b2b-onboarding-apply": {
+    "blocks": ["b2b-onboarding-application-form"]
+  },
+  "store.custom#b2b-onboarding-status": {
+    "blocks": ["b2b-onboarding-application-status"]
+  }
+}

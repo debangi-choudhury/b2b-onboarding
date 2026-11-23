@@ -1,0 +1,7 @@
+#import "./applicationFields.graphql"
+
+query OnboardingApplication($id: ID!) {
+  onboardingApplication(id: $id) @context(provider: "logixalpartnerus.b2b-onboarding") {
+    ...ApplicationDetail
+  }
+}

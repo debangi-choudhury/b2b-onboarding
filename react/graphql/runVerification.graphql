@@ -1,0 +1,7 @@
+#import "./applicationFields.graphql"
+
+mutation RunVerification($id: ID!, $stageId: ID!) {
+  runVerification(id: $id, stageId: $stageId) @context(provider: "logixalpartnerus.b2b-onboarding") {
+    ...ApplicationDetail
+  }
+}

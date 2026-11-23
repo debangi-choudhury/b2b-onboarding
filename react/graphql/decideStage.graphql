@@ -1,0 +1,7 @@
+#import "./applicationFields.graphql"
+
+mutation DecideStage($id: ID!, $stageId: ID!, $decision: StageDecision!, $reason: String, $note: String) {
+  decideStage(id: $id, stageId: $stageId, decision: $decision, reason: $reason, note: $note) @context(provider: "logixalpartnerus.b2b-onboarding") {
+    ...ApplicationDetail
+  }
+}

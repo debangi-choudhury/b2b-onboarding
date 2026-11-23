@@ -1,0 +1,7 @@
+query OnboardingDocument($id: ID!, $kind: String!) {
+  onboardingDocument(id: $id, kind: $kind) @context(provider: "logixalpartnerus.b2b-onboarding") {
+    fileName
+    contentType
+    dataBase64
+  }
+}

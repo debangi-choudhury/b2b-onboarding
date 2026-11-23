@@ -1,0 +1,64 @@
+# Applicants use the public REST routes in node/routes/applicant.ts, not GraphQL.
+#
+# Review operations are for admins only, with the same License Manager
+# permissions as VTEX's own B2B Organizations screens (product 97, "Buyer
+# Organizations"): Buyer Organization View to read applications and documents,
+# Buyer Organization Edit to act on them. Final approval also needs the
+# reviewer's own rights in B2B Organizations, which this matches.
+
+type Query {
+  onboardingApplications(
+    status: ApplicationStatus
+    page: Int = 1
+    pageSize: Int = 20
+  ): ApplicationPage
+    @auth(scope: PRIVATE, productCode: "97", resourceCode: "buyer_organization_view")
+    @cacheControl(scope: PRIVATE)
+
+  onboardingApplication(id: ID!): Application
+    @auth(scope: PRIVATE, productCode: "97", resourceCode: "buyer_organization_view")
+    @cacheControl(scope: PRIVATE)
+
+  "The approval stages new applications follow, from app settings"
+  onboardingStages: StageConfig
+    @auth(scope: PRIVATE, productCode: "97", resourceCode: "buyer_organization_view")
+    @cacheControl(scope: PRIVATE)
+
+  "A document's file for the review screen, base64 encoded (at most 5 MB)"
+  onboardingDocument(id: ID!, kind: String!): DocumentFile
+    @auth(scope: PRIVATE, productCode: "97", resourceCode: "buyer_organization_view")
+    @cacheControl(scope: PRIVATE)
+}
+
+type Mutation {
+  "Accepts or rejects one document. Only on a REVIEW stage; every decision is kept."
+  reviewDocument(
+    id: ID!
+    stageId: ID!
+    kind: String!
+    decision: DocumentDecision!
+    "Internal. Never shown to the applicant."
+    note: String
+  ): Application
+    @auth(scope: PRIVATE, productCode: "97", resourceCode: "buyer_organization_edit")
+
+  "Runs the eligibility check on the application's verification stage"
+  runVerification(id: ID!, stageId: ID!): Application
+    @auth(scope: PRIVATE, productCode: "97", resourceCode: "buyer_organization_edit")
+
+  """
+  Passes or rejects the application's current stage. stageId must be the stage
+  the reviewer saw, so two reviewers can't act on different stages. Passing the
+  final APPROVAL stage creates the organization in B2B Organizations.
+  """
+  decideStage(
+    id: ID!
+    stageId: ID!
+    decision: StageDecision!
+    "Required to reject. Shown to the applicant."
+    reason: String
+    "Internal. Never shown to the applicant."
+    note: String
+  ): Application
+    @auth(scope: PRIVATE, productCode: "97", resourceCode: "buyer_organization_edit")
+}

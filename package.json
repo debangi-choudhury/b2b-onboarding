@@ -1,0 +1,39 @@
+{
+  "name": "b2b-onboarding",
+  "private": true,
+  "license": "UNLICENSED",
+  "version": "0.0.0",
+  "scripts": {
+    "lint": "eslint --ext .ts,.tsx node react",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@vtex/prettier-config": "^1.0.0",
+    "eslint": "^7.32.0",
+    "eslint-config-vtex": "^15.1.0",
+    "jest": "^29.7.0",
+    "prettier": "^2.8.8",
+    "ts-jest": "^29.1.5",
+    "typescript": "4.9.5"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "<rootDir>/node/__tests__/**/*.test.ts"
+    ],
+    "transform": {
+      "^.+\\.ts$": [
+        "ts-jest",
+        {
+          "diagnostics": false,
+          "tsconfig": {
+            "module": "commonjs",
+            "esModuleInterop": true,
+            "target": "es2019"
+          }
+        }
+      ]
+    }
+  }
+}

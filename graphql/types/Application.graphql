@@ -1,0 +1,170 @@
+enum ApplicationStatus {
+  IN_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum StageType {
+  "A reviewer checks the application and its documents"
+  REVIEW
+  "Runs the eligibility check, which must pass before the stage can pass"
+  VERIFICATION
+  "Final approval: creates the organization in B2B Organizations"
+  APPROVAL
+}
+
+enum StageDecision {
+  PASS
+  REJECT
+}
+
+enum VerificationStatus {
+  PASSED
+  FAILED
+}
+
+enum EventType {
+  SUBMITTED
+  DOCUMENT_REVIEWED
+  VERIFICATION_RUN
+  STAGE_PASSED
+  APPROVED
+  REJECTED
+  APPROVAL_FAILED
+}
+
+enum ActorType {
+  APPLICANT
+  REVIEWER
+  SYSTEM
+}
+
+type Stage {
+  id: ID!
+  label: String!
+  type: StageType!
+}
+
+type StageConfig {
+  stages: [Stage!]!
+  "True when settings are empty or invalid and the defaults apply"
+  isDefault: Boolean!
+  "Problems in the stage settings, for admins to fix"
+  problems: [String!]!
+}
+
+type Contact {
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+}
+
+type Address {
+  street: String!
+  number: String
+  complement: String
+  city: String!
+  state: String!
+  postalCode: String!
+  country: String!
+  receiverName: String
+}
+
+type Verification {
+  status: VerificationStatus!
+  code: String!
+  message: String!
+  provider: String!
+  reference: String!
+  registeredName: String
+  checkedAt: String!
+}
+
+enum DocumentStatus {
+  NEEDS_REVIEW
+  ACCEPTED
+  REJECTED
+}
+
+enum DocumentDecision {
+  ACCEPT
+  REJECT
+}
+
+type DocumentReview {
+  decision: DocumentStatus!
+  stageId: String!
+  stageLabel: String!
+  actor: String!
+  note: String
+  at: String!
+}
+
+type DocumentRef {
+  kind: String!
+  fileName: String!
+  contentType: String!
+  size: Int!
+  uploadedAt: String!
+  status: DocumentStatus!
+  lastReview: DocumentReview
+}
+
+type DocumentFile {
+  kind: String!
+  fileName: String!
+  contentType: String!
+  size: Int!
+  dataBase64: String!
+}
+
+type ApplicationEvent {
+  id: ID
+  type: EventType!
+  stageId: String
+  stageLabel: String
+  actorType: ActorType!
+  actor: String!
+  reason: String
+  note: String
+  "JSON with event-specific data"
+  details: String
+  createdAt: String!
+}
+
+type Application {
+  id: ID!
+  reference: String!
+  status: ApplicationStatus!
+  companyName: String!
+  tradeName: String
+  registrationNumber: String!
+  taxId: String
+  contact: Contact
+  address: Address
+  stages: [Stage!]
+  currentStage: Stage
+  currentStageIndex: Int
+  verification: Verification
+  documents: [DocumentRef!]
+  rejectionReason: String
+  organizationRequestId: String
+  organizationId: String
+  submittedAt: String!
+  updatedAt: String
+  decidedAt: String
+  "Full history, oldest first"
+  events: [ApplicationEvent!]
+}
+
+type Pagination {
+  total: Int!
+  page: Int!
+  pageSize: Int!
+}
+
+type ApplicationPage {
+  items: [Application!]!
+  pagination: Pagination!
+}
