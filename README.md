@@ -273,7 +273,7 @@ For a failed check, use an IEC ending in 0: the stage can then only be rejected.
 - **Applications, organizations and users are shared across the whole account,** including the live B2C store's workspace. Anything created in a test is real account data.
 - Approving an application creates a real organization and user. Use `TEST -` company names and inboxes you control.
 - **Demo queue kept on purpose:** `APP-N7MUG7CX` (waiting at Final approval, for approving live in a demo), `APP-5VKMQCZC` (approved) and `APP-PKPM6CQD` (rejected, with a full audit trail).
-- **India test applications from 2026-11-23:** `APP-3GMR5K39` (all checks verified, at Final approval), `APP-VVC6CBUL` (bank check accepted after a partial match, at Final approval) and `APP-FVWYZKN5` (IEC failed, at Compliance check).
+- The India test applications from 2026-11-23 were deleted the same day. To delete test applications by hand: their `b2b_onboarding_event` records (search by `applicationId`), their stored files in `BD` (list them and pick by `applicationId`, which can't be filtered on), then the application. A `storageId` is `documentId/fileName`.
 - The app has no delete button. Test applications are deleted by a developer through the Master Data API, together with their history events and their stored documents in entity `BD`.
 
 ## Development and release
