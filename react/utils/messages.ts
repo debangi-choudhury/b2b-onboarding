@@ -136,7 +136,7 @@ export const messages = defineMessages({
   introSteps: {
     id: 'store/b2b-onboarding.apply.intro-steps',
     defaultMessage:
-      'Five short steps. Our team reviews every application and emails your administrator when the account is ready.',
+      'A few short steps. Our team reviews every application and emails your administrator when the account is ready.',
   },
   stepsLabel: {
     id: 'store/b2b-onboarding.steps.label',
@@ -308,6 +308,43 @@ export const messages = defineMessages({
     id: 'store/b2b-onboarding.summary.documents-count',
     defaultMessage: '{count} of {total} uploaded',
   },
+  indiaTitle: {
+    id: 'store/b2b-onboarding.india.title',
+    defaultMessage: 'Indian business identifiers',
+  },
+  indiaHelp: {
+    id: 'store/b2b-onboarding.india.help',
+    defaultMessage:
+      "Applications from India need the business's PAN. We verify each identifier automatically.",
+  },
+  indiaDemoNotice: {
+    id: 'store/b2b-onboarding.india.demo-notice',
+    defaultMessage:
+      'Demo store: use made-up numbers in the right format, never a real PAN or real bank details.',
+  },
+  yes: { id: 'store/b2b-onboarding.yes', defaultMessage: 'Yes' },
+  no: { id: 'store/b2b-onboarding.no', defaultMessage: 'No' },
+  stepBank: {
+    id: 'store/b2b-onboarding.step.bank',
+    defaultMessage: 'Bank account',
+  },
+  bankTitle: {
+    id: 'store/b2b-onboarding.bank.title',
+    defaultMessage: 'Which bank account should we verify?',
+  },
+  bankHelp: {
+    id: 'store/b2b-onboarding.bank.help',
+    defaultMessage:
+      "We send a small test transfer to check that the account exists and is in your business's name.",
+  },
+  countryOnCompanyStep: {
+    id: 'store/b2b-onboarding.address.country-on-company',
+    defaultMessage: 'Country: {country}. It was chosen on the Company step.',
+  },
+  changeCountry: {
+    id: 'store/b2b-onboarding.address.change-country',
+    defaultMessage: 'Change',
+  },
 })
 
 export const fieldLabels: Record<
@@ -369,13 +406,74 @@ export const fieldLabels: Record<
   },
   'address.country': {
     id: 'store/b2b-onboarding.field.address.country',
-    defaultMessage: 'Country',
+    defaultMessage: 'Country of registration',
   },
   'address.receiverName': {
     id: 'store/b2b-onboarding.field.address.receiverName',
     defaultMessage: 'Receiving contact',
   },
+  'india.pan': {
+    id: 'store/b2b-onboarding.field.india.pan',
+    defaultMessage: "Business's PAN",
+  },
+  'india.importsOrExports': {
+    id: 'store/b2b-onboarding.field.india.importsOrExports',
+    defaultMessage: 'Do you import or export?',
+  },
+  'india.iec': {
+    id: 'store/b2b-onboarding.field.india.iec',
+    defaultMessage: 'Importer Exporter Code (IEC)',
+  },
+  'india.udyam': {
+    id: 'store/b2b-onboarding.field.india.udyam',
+    defaultMessage: 'Udyam registration number',
+  },
+  'india.accountNumber': {
+    id: 'store/b2b-onboarding.field.india.accountNumber',
+    defaultMessage: 'Account number',
+  },
+  'india.ifsc': {
+    id: 'store/b2b-onboarding.field.india.ifsc',
+    defaultMessage: 'IFSC',
+  },
+  'india.accountHolderName': {
+    id: 'store/b2b-onboarding.field.india.accountHolderName',
+    defaultMessage: 'Account holder name',
+  },
 }) as Record<FieldName, { id: string; defaultMessage: string }>
+
+/** Format hints shown under some labels */
+export const fieldHints: Partial<
+  Record<FieldName, { id: string; defaultMessage: string }>
+> = defineMessages({
+  'india.pan': {
+    id: 'store/b2b-onboarding.hint.india.pan',
+    defaultMessage:
+      '10 characters, such as ABCCD1234X. The 4th letter shows the holder type: C for a company, F for a firm.',
+  },
+  'india.iec': {
+    id: 'store/b2b-onboarding.hint.india.iec',
+    defaultMessage: '10 letters or digits, from the DGFT certificate',
+  },
+  'india.udyam': {
+    id: 'store/b2b-onboarding.hint.india.udyam',
+    defaultMessage: 'For MSMEs, such as UDYAM-MH-01-0012345',
+  },
+  'india.accountNumber': {
+    id: 'store/b2b-onboarding.hint.india.accountNumber',
+    defaultMessage: '9 to 18 digits',
+  },
+  'india.ifsc': {
+    id: 'store/b2b-onboarding.hint.india.ifsc',
+    defaultMessage:
+      '11 characters, such as SBIN0001234, from a cheque or the bank',
+  },
+  'india.accountHolderName': {
+    id: 'store/b2b-onboarding.hint.india.accountHolderName',
+    defaultMessage:
+      "As the bank shows it. It should be your business's legal name.",
+  },
+})
 
 export const documentLabels: Record<
   DocumentKind,
@@ -430,5 +528,10 @@ export const errorLabels: Record<
   UNSUPPORTED_TYPE: {
     id: 'store/b2b-onboarding.error.unsupported-type',
     defaultMessage: 'Use a PDF, JPG or PNG file',
+  },
+  PAN_NOT_BUSINESS: {
+    id: 'store/b2b-onboarding.error.pan-not-business',
+    defaultMessage:
+      "This is an individual's PAN. Use the business's own PAN, whose 4th letter is C, F, H, A, T, B, L, J or G",
   },
 })

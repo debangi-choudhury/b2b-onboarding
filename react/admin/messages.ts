@@ -303,6 +303,152 @@ export const adminMessages = defineMessages({
     id: 'admin/b2b-onboarding.action-failed',
     defaultMessage: "That didn't work: {message}",
   },
+  indiaIdentifiers: {
+    id: 'admin/b2b-onboarding.india.title',
+    defaultMessage: 'Indian business identifiers',
+  },
+  pan: { id: 'admin/b2b-onboarding.india.pan', defaultMessage: 'PAN' },
+  iec: { id: 'admin/b2b-onboarding.india.iec', defaultMessage: 'IEC' },
+  udyam: { id: 'admin/b2b-onboarding.india.udyam', defaultMessage: 'Udyam' },
+  importsOrExports: {
+    id: 'admin/b2b-onboarding.india.imports-or-exports',
+    defaultMessage: 'Imports or exports',
+  },
+  yes: { id: 'admin/b2b-onboarding.yes', defaultMessage: 'Yes' },
+  no: { id: 'admin/b2b-onboarding.no', defaultMessage: 'No' },
+  bankAccount: {
+    id: 'admin/b2b-onboarding.india.bank-account',
+    defaultMessage: 'Bank account',
+  },
+  accountNumber: {
+    id: 'admin/b2b-onboarding.india.account-number',
+    defaultMessage: 'Account number',
+  },
+  ifsc: { id: 'admin/b2b-onboarding.india.ifsc', defaultMessage: 'IFSC' },
+  accountHolder: {
+    id: 'admin/b2b-onboarding.india.account-holder',
+    defaultMessage: 'Account holder',
+  },
+  showFull: {
+    id: 'admin/b2b-onboarding.india.show-full',
+    defaultMessage: 'Show full number',
+  },
+  hideFull: {
+    id: 'admin/b2b-onboarding.india.hide-full',
+    defaultMessage: 'Hide',
+  },
+  revealNotice: {
+    id: 'admin/b2b-onboarding.india.reveal-notice',
+    defaultMessage:
+      'PAN and account numbers are masked. Opening one in full is recorded in the history.',
+  },
+  kycTitle: {
+    id: 'admin/b2b-onboarding.kyc.title',
+    defaultMessage: 'Identifier checks',
+  },
+  kycNotChecked: {
+    id: 'admin/b2b-onboarding.kyc.not-checked',
+    defaultMessage:
+      'PAN, IEC, Udyam and bank account are checked together with the eligibility check.',
+  },
+  kycPAN: { id: 'admin/b2b-onboarding.kyc.kind-pan', defaultMessage: 'PAN' },
+  kycIEC: {
+    id: 'admin/b2b-onboarding.kyc.kind-iec',
+    defaultMessage: 'Importer Exporter Code',
+  },
+  kycUDYAM: {
+    id: 'admin/b2b-onboarding.kyc.kind-udyam',
+    defaultMessage: 'Udyam registration',
+  },
+  kycBANK_ACCOUNT: {
+    id: 'admin/b2b-onboarding.kyc.kind-bank-account',
+    defaultMessage: 'Bank account (test transfer)',
+  },
+  kycVERIFIED: {
+    id: 'admin/b2b-onboarding.kyc.verified',
+    defaultMessage: 'Verified',
+  },
+  kycFAILED: {
+    id: 'admin/b2b-onboarding.kyc.failed',
+    defaultMessage: 'Failed',
+  },
+  kycMANUAL_REVIEW: {
+    id: 'admin/b2b-onboarding.kyc.manual-review',
+    defaultMessage: 'Needs review',
+  },
+  kycAccepted: {
+    id: 'admin/b2b-onboarding.kyc.accepted',
+    defaultMessage: 'Accepted by reviewer',
+  },
+  kycRejected: {
+    id: 'admin/b2b-onboarding.kyc.rejected',
+    defaultMessage: 'Rejected by reviewer',
+  },
+  matchSTRONG: {
+    id: 'admin/b2b-onboarding.kyc.match-strong',
+    defaultMessage: 'Name matches',
+  },
+  matchPARTIAL: {
+    id: 'admin/b2b-onboarding.kyc.match-partial',
+    defaultMessage: 'Name partly matches',
+  },
+  matchNONE: {
+    id: 'admin/b2b-onboarding.kyc.match-none',
+    defaultMessage: "Name doesn't match",
+  },
+  nameMatchDetail: {
+    id: 'admin/b2b-onboarding.kyc.name-match-detail',
+    defaultMessage:
+      '{band} ({score}%): registered as "{registered}", applied as "{applied}"',
+  },
+  decisionDetail: {
+    id: 'admin/b2b-onboarding.kyc.decision-detail',
+    defaultMessage: '{decision} ({actor}, {date}): {note}',
+  },
+  acceptCheck: {
+    id: 'admin/b2b-onboarding.kyc.accept',
+    defaultMessage: 'Accept',
+  },
+  rejectCheck: {
+    id: 'admin/b2b-onboarding.kyc.reject',
+    defaultMessage: 'Reject',
+  },
+  decideCheckTitle: {
+    id: 'admin/b2b-onboarding.kyc.decide-title',
+    defaultMessage: '{decision}: {check}',
+  },
+  decisionNote: {
+    id: 'admin/b2b-onboarding.kyc.decision-note',
+    defaultMessage:
+      'Why? For example, which document confirms it (10 to 1000 characters, internal)',
+  },
+  confirmDecision: {
+    id: 'admin/b2b-onboarding.kyc.confirm',
+    defaultMessage: 'Confirm',
+  },
+  passHintNeedsDecision: {
+    id: 'admin/b2b-onboarding.action.hint-needs-decision',
+    defaultMessage:
+      'Accept or reject each identifier check that needs a review before this step can pass.',
+  },
+  passHintBlocked: {
+    id: 'admin/b2b-onboarding.action.hint-blocked',
+    defaultMessage:
+      'A check failed or was rejected, so this step can only be rejected.',
+  },
+  evKYC_DECIDED: {
+    id: 'admin/b2b-onboarding.event.kyc-decided',
+    defaultMessage: 'Identifier check decided',
+  },
+  evIDENTIFIER_REVEALED: {
+    id: 'admin/b2b-onboarding.event.identifier-revealed',
+    defaultMessage: 'Full identifier opened',
+  },
+  kycDemoNotice: {
+    id: 'admin/b2b-onboarding.kyc.demo-notice',
+    defaultMessage:
+      'Demo: identifier checks use a simulated KYC provider. Numbers ending in 0 fail, ending in 5 need review, and all others are verified. A bank account ending in 7 returns a slightly different name.',
+  },
   demoNotice: {
     id: 'admin/b2b-onboarding.demo-notice',
     defaultMessage:

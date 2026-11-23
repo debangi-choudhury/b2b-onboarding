@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-23
+
+Changes from a review against VTEX's IO guidance (https://github.com/vtex/skills).
+
+### Fixed
+
+- Calls that create something (history events, document records, file uploads and the B2B organization request) are no longer retried automatically. A retry after a timeout could have created them twice, including a second organization request.
+- The Admin stage settings read the app settings once instead of twice.
+- The public apply and status endpoints no longer return the details and stack of an unexpected error. They log the message and answer `503` with `{"code":"UNAVAILABLE"}`, which the pages show as their usual "try again" message.
+
+### Changed
+
+- The service has a platform rate limit of 300 requests a minute and 10 at a time per replica, in addition to the per-visitor limit on the public form.
+
+## [0.3.0] - 2026-11-23
+
+### Added
+
+- Applications from India ask for the business's PAN, its Udyam registration (optional) and, for importers and exporters, its IEC. A new Bank account step asks for the account number, IFSC and account holder name. Formats are checked in the form and again on the server, and a PAN whose 4th letter isn't a business type, such as P for a person, is refused with its own message.
+- A KYC provider layer (`KycProvider`) with a simulated provider, chosen by the new **KYC provider (India)** setting. The verification stage checks the PAN, IEC, Udyam number and bank account (test transfer) together with the eligibility check.
+- Name matching between the company name and the name the provider has on record. A partial match needs a reviewer's decision.
+- On the review screen: each identifier check with its result and name match, **Accept** and **Reject** for checks that need a review (with a required note), and an audit trail entry for every decision.
+- PAN and bank account numbers are masked on the review screen and in the API. **Show full number** opens one, and each opening is recorded in the audit trail.
+
+### Changed
+
+- The country is chosen first, as "Country of registration" on the Company step, because it decides which questions follow. The Address step shows it with a link back.
+- The verification stage passes only when the eligibility check passed and every identifier check is verified or accepted. Applications from other countries, and those submitted before this version, depend on the eligibility check alone, as before.
+- Master Data write errors no longer carry the document, so a failed save can't put a PAN or account number in the logs.
+
 ## [0.2.2] - 2026-11-16
 
 ### Fixed

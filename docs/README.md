@@ -2,7 +2,7 @@
 
 Adds a verified onboarding flow to B2B stores. Companies apply through a form with their documents, reviewers take each application through configurable stages in Admin, and final approval creates the organization in [B2B Organizations](https://developers.vtex.com/docs/apps/vtex.b2b-organizations).
 
-B2B Organizations' own request form takes a company name and address, and an admin approves or declines it in one step. This app adds document upload, an eligibility check, staged review with per-document decisions, and an audit trail.
+B2B Organizations' own request form takes a company name and address, and an admin approves or declines it in one step. This app adds document upload, an eligibility check, Indian business identifier checks (KYC), staged review with per-document decisions, and an audit trail.
 
 ## Requirements
 
@@ -14,7 +14,8 @@ B2B Organizations' own request form takes a company name and address, and an adm
 
 `/business-application` asks for:
 
-- **Company:** legal name, trade name, registration number and tax ID.
+- **Company:** country of registration, legal name, trade name, registration number and tax ID.
+- **For India only:** the business's PAN, its Udyam registration (optional) and, for importers and exporters, its IEC, on the Company step; then a **Bank account** step with the account number, IFSC and account holder name. A PAN whose 4th letter isn't a business holder type, such as P for a person, is refused.
 - **Account administrator:** first and last name, email and phone. This person becomes the organization's administrator and receives the approval email.
 - **Business address.**
 - **Documents:** business registration certificate and tax certificate. PDF, JPG or PNG, up to 5 MB each.
@@ -30,7 +31,7 @@ Each application shows its stages, details, documents, eligibility check and aud
 | Stage type | What the reviewer does | Can pass when |
 | --- | --- | --- |
 | Review | Views each document and accepts or rejects it, with an optional note | Every document is accepted |
-| Verification | Runs the eligibility check | The check passed |
+| Verification | Runs the eligibility check, and for India the identifier checks. Accepts or rejects, with a note, each identifier check that needs a review | The eligibility check passed and every identifier check is verified or accepted |
 | Approval | Approves | Always. Approval creates the organization, its cost center and the administrator user in B2B Organizations, and sends the approval email |
 
 An application can be rejected at any stage. The reason is shown to the applicant. Notes are internal.
@@ -41,9 +42,17 @@ An application can be rejected at any stage. The reason is shown to the applican
 
 With no stages set, or with invalid settings, the default applies: Document review, then Compliance check, then Final approval. Applications already submitted keep the stages they started with.
 
+**KYC provider (India)** picks the provider for identifier checks. Only the simulated provider is available.
+
 ## Eligibility check
 
 This version uses a simulated company registry for demonstrations. Registration numbers ending in 0 aren't found, numbers ending in 9 belong to dissolved companies, and all others pass. A real registry or KYB provider can replace it behind the `EligibilityVerifier` interface.
+
+## Identifier checks (India)
+
+The verification stage checks the PAN, the IEC and Udyam numbers when given, and the bank account with a test transfer ("penny drop"). Each check returns Verified, Failed or Needs review. The name the provider has on record is compared with the legal company name, ignoring words such as Pvt and Ltd: a partial match needs review, and no match fails.
+
+This version uses a simulated provider for demonstrations. Numbers ending in 0 fail, numbers ending in 5 need review, and all others are verified. A bank account ending in 7 returns the holder's name with one word changed, to show a partial match. A real KYC provider can replace it as one new class behind the `KycProvider` interface, plus an option in the setting.
 
 ## Data and privacy
 
@@ -51,10 +60,11 @@ This version uses a simulated company registry for demonstrations. Registration 
 - Documents are stored as Master Data v1 attachments under random IDs and file names that never reach the browser. Reviewers open them through the app, which checks their permission.
 - Master Data v1 attachments are served to anyone who knows a document's ID and file name. For real company documents, move storage to private object storage with short-lived links behind the `DocumentStore` interface.
 - The status code is stored only as a hash.
+- PAN and bank account numbers are stored in the application record, which isn't searchable by them. The review screen and the API show them masked. A reviewer with Buyer Organization Edit can open one in full, and each opening is recorded. Master Data v2 has no field-level access control, so anyone allowed to read the entity through the Master Data API can read them; encrypt them at rest for real customer data.
 
 ## Customization
 
-CSS handles: `container`, `title`, `intro`, `demoNotice`, `form`, `section`, `sectionTitle`, `sectionHelp`, `field`, `fieldLabel`, `fieldInput`, `fieldError`, `fileName`, `formError`, `submit`, `receipt`, `receiptTitle`, `receiptValue`, `receiptCopy`, `receiptLink`, `statusContainer`, `statusTitle`, `statusForm`, `statusResult`, `statusBadge` and `statusReason`.
+CSS handles: `container`, `title`, `intro`, `demoNotice`, `form`, `indiaSection`, `section`, `sectionTitle`, `sectionHelp`, `field`, `fieldLabel`, `fieldInput`, `fieldError`, `fileName`, `formError`, `submit`, `receipt`, `receiptTitle`, `receiptValue`, `receiptCopy`, `receiptLink`, `statusContainer`, `statusTitle`, `statusForm`, `statusResult`, `statusBadge` and `statusReason`.
 
 ## Limitations
 

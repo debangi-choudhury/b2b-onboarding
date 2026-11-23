@@ -5,9 +5,9 @@ Verified sign-up for B2B customers on VTEX. Companies apply with their documents
 | | |
 | --- | --- |
 | App | `logixalpartnerus.b2b-onboarding` |
-| Version | 0.2.2 |
+| Version | 0.3.0 |
 | Live in | workspace `b2btest` (https://b2btest--logixalpartnerus.myvtex.com/) |
-| Task | B2B-C11, from Logixal's development sheet |
+| Task | B2B-C11, and B2B-085 (India identifier checks, 0.3.0), from Logixal's development sheet |
 | Status | Internal demo app for prospective clients. All demo data is labelled `TEST` |
 
 Shorter app-store description: [docs/README.md](docs/README.md). Version history: [CHANGELOG.md](CHANGELOG.md).
@@ -34,7 +34,7 @@ VTEX B2B Organizations already has a sign-up form. This app replaces it with a v
 | --- | --- | --- |
 | Application | One form: company name, admin and address | Guided five-step form: Company, Administrator, Address, Documents, Review |
 | Documents | None. The tax ID is a free-text field | Business registration certificate and tax certificate (PDF, JPG or PNG, up to 5 MB each) |
-| Verification | None | Eligibility check against a company registry (simulated in this demo) |
+| Verification | None | Eligibility check against a company registry, and for India PAN, IEC, Udyam and bank account checks with name matching (both simulated in this demo) |
 | Review | One Approve or Decline | Configurable stages. By default: Document review, then Compliance check, then Final approval |
 | Per-document decisions | No | Accept or reject each document, with internal notes |
 | Audit trail | No | Every step, with who did it, when, and notes |
@@ -73,9 +73,10 @@ Stages come from the app's settings. The three above are the default, and each a
 
 ## Applicant journey
 
-1. **Company:** legal company name, trade name (optional), company registration number, tax ID (optional).
+1. **Company:** country of registration, legal company name, trade name (optional), company registration number, tax ID (optional). For India, also the business's PAN, the Udyam registration number (optional) and "Do you import or export?". Yes asks for the IEC.
+   - **India only:** a Bank account step follows, with account number, IFSC and account holder name, so India applications have six steps.
 2. **Administrator:** first and last name, email, phone (optional). This person becomes the organization's admin and receives the approval email.
-3. **Address:** street, number, suite, city, state or region, postal code, country, receiving contact.
+3. **Address:** street, number, suite, city, state or region, postal code, receiving contact. The country was chosen on the Company step and is shown here with a Change link.
 4. **Documents:** business registration certificate and tax certificate, dragged in or browsed. Each becomes a file card with a Replace button.
 5. **Review:** every answer, with Edit links back to each step. Then **Submit application**.
 
@@ -95,6 +96,7 @@ Done in VTEX Admin by anyone with the Buyer Organization View and Edit permissio
 - Company, address and administrator details.
 - Documents: **View** opens the file in a viewer with a download link. **Accept** or **Reject** each one, with an optional internal note.
 - Eligibility check: the result, the provider and its reference.
+- For India: the identifiers, with PAN and account number masked (**Show full number** opens one and is recorded), and each identifier check with its result, name match and any decision. Checks that need a review have **Accept** and **Reject**, which need a note of 10 to 1000 characters.
 - Audit trail: every step in order, with who and when.
 
 **What each stage needs:**
@@ -102,7 +104,7 @@ Done in VTEX Admin by anyone with the Buyer Organization View and Edit permissio
 | Stage | Reviewer does | Can pass when |
 | --- | --- | --- |
 | Document review | Views and accepts or rejects each document | Every document is accepted |
-| Compliance check | Clicks Run check | The check passed. A failed check can only be rejected |
+| Compliance check | Clicks Run check. For India, accepts or rejects each identifier check that needs a review | The eligibility check passed, and every identifier check is verified or accepted. A failed or rejected check can only be rejected |
 | Final approval | Clicks Approve and create organization | Always. It takes a few seconds |
 
 At any stage, **Reject application** asks for a reason of 10 to 500 characters. The applicant sees the reason. Notes stay internal.
@@ -127,6 +129,20 @@ This demo has no real registry. The check decides by the last digit of the regis
 | anything else | `TEST-100123` | Passed: active |
 
 A real registry or KYB provider can replace it behind the `EligibilityVerifier` interface without changing the rest of the app.
+
+### Simulated KYC provider (India)
+
+Identifier checks decide by the last digit of each number (for the PAN, its 4 digits):
+
+| Number ends in | Result |
+| --- | --- |
+| 0 | Failed: not found |
+| 5 | Needs review: the provider couldn't decide |
+| anything else | Verified, with the company name as the registered name |
+
+The bank account's registered name is the account holder name given. When the account number ends in 7, its last real word becomes ENTERPRISES, which gives a partial name match. Name matching ignores words such as Pvt, Ltd and the TEST prefix, scores the shared words, and calls 0.85 or more a match, 0.5 or more a partial match (needs review), and less no match (failed). Demo company names need at least two real words, such as `TEST - KYC Demo Pvt Ltd`.
+
+The provider is picked by the **KYC provider (India)** setting. A real provider is one new class behind `KycProvider` plus an option in the setting.
 
 ### Documents
 
@@ -226,7 +242,26 @@ Run these in `b2btest`.
 - [ ] **6.** On the status page, enter any reference with a wrong code.
   *Expect:* "No application matches this reference and status code."
 
-### Test 4: Reviewer access (needs a second Admin user)
+### Test 4: India identifiers (about 10 minutes)
+
+- [ ] **1.** On `/business-application`, choose IND as the country of registration.
+  *Expect:* the stepper shows six steps, with Bank account second, and an "Indian business identifiers" section appears.
+- [ ] **2.** Enter `ABCPD1234X` as the PAN and leave the field.
+  *Expect:* "This is an individual's PAN…".
+- [ ] **3.** Enter `ABCCD1231X`. Choose Yes for "Do you import or export?" and enter IEC `ABCDE12341`. Use a company name with two real words, such as "TEST - KYC Demo Pvt Ltd".
+  *Expect:* the IEC field appears only after Yes.
+- [ ] **4.** On Bank account, enter `123456789017`, IFSC `TEST0001234` and the company name as holder. Finish and submit.
+  *Expect:* Review shows a Bank account section. "Application received".
+- [ ] **5.** In Admin, open it, accept both documents, pass Document review and click Run check.
+  *Expect:* PAN and IEC Verified. Bank account "Needs review", name partly matches. Pass is disabled with a hint.
+- [ ] **6.** Click Accept on the bank check, type a short note, then a full one, and confirm.
+  *Expect:* Confirm stays disabled under 10 characters. Then "Accepted by reviewer", Pass is enabled, and the audit trail shows the decision with the note.
+- [ ] **7.** Click Show full number next to the PAN.
+  *Expect:* the full PAN, and "Full identifier opened · PAN" in the audit trail.
+
+For a failed check, use an IEC ending in 0: the stage can then only be rejected.
+
+### Test 5: Reviewer access (needs a second Admin user)
 
 - [ ] **1.** Log in to Admin as a user without the `b2b-admin` role, or any other role holding Buyer Organization View.
   *Expect:* the login works.
@@ -238,6 +273,7 @@ Run these in `b2btest`.
 - **Applications, organizations and users are shared across the whole account,** including the live B2C store's workspace. Anything created in a test is real account data.
 - Approving an application creates a real organization and user. Use `TEST -` company names and inboxes you control.
 - **Demo queue kept on purpose:** `APP-N7MUG7CX` (waiting at Final approval, for approving live in a demo), `APP-5VKMQCZC` (approved) and `APP-PKPM6CQD` (rejected, with a full audit trail).
+- The India test applications from 2026-11-23 were deleted the same day. To delete test applications by hand: their `b2b_onboarding_event` records (search by `applicationId`), their stored files in `BD` (list them and pick by `applicationId`, which can't be filtered on), then the application. A `storageId` is `documentId/fileName`.
 - The app has no delete button. Test applications are deleted by a developer through the Master Data API, together with their history events and their stored documents in entity `BD`.
 
 ## Development and release
@@ -274,6 +310,8 @@ To release:
 | Applications | Master Data v2 entity `b2b_onboarding_application`, schema `v1`. The document ID is the reference |
 | History | Master Data v2 entity `b2b_onboarding_event`, schema `v1`. Document reviews live on each document and are merged into the history by the API |
 | Documents | Master Data v1 entity `BD`, one document per file, under a random ID and random file name |
+| India KYC | `node/verification/kyc.ts` (`KycProvider`, `runKycChecks`), `mockKyc.ts`, `kycProviders.ts` (the setting). Rules in `node/domain`: `indiaIdentifiers.ts` (formats and masking, with an identical copy in `react/utils/` checked by a test), `nameMatch.ts` and `kycOutcome.ts` (`verificationOutcome`) |
+| India data | On the application: `india`, `kycChecks`, `kycDecisions` and `identifierReveals`, none indexed. Decisions and reveals are merged into the history by the API, like document reviews. The GraphQL `Application.india` type only has masked fields; `revealIdentifier` returns a full value and records it |
 | Approval | Calls `createOrganizationRequest`, then `updateOrganizationRequest(approved)`, on `vtex.b2b-organizations-graphql` 2.x, with the reviewer's own admin token. The new organization gets the request's ID |
 | Admin menu | `admin/navigation.json` uses the 3.x shape `[{"section": "storeSetup", "titleId", "path": "/admin/b2b-onboarding"}]`, which shows under Apps → Installed Apps |
 | Store redirect | `/organization-request` → `/business-application`, set per workspace in `b2bdev` and `b2btest`, not in `master` |
@@ -299,7 +337,8 @@ store/        Store routes and blocks
 ### Things that will bite you
 
 - **After a first install or a new version, Master Data refuses the app for a few minutes,** and up to about 17 after the first install in a workspace. A fresh `vtex link` after an install took about 8. Wait until the status endpoint returns `NOT_FOUND` before testing.
-- **A Master Data v2 schema change locks that entity's schemas for about 12 hours.** Change schemas rarely, and change the schema's `title` with them.
+- **A Master Data v2 schema change locks that entity's schemas for about 12 hours.** Change schemas rarely. The app writes a schema when its title differs or a property is missing. Since 0.3.0, keep the titles as they are: 0.2.2 rewrites the schema whenever the title differs from its own.
+- **Older versions drop fields they don't know.** The app saves whole documents, so an older version acting on a newer record removes its newer fields. Keep every workspace on the same version.
 - Master Data v2 checks a PATCH against the schema's `required` fields, so the app always writes whole documents.
 - New GraphQL fields need a new minor version. Fields added with `extend type Query` return null.
 - React 16 reuses change events: read `e.target.value` before calling a state updater. This crashed the country field in 0.2.0.
@@ -309,7 +348,9 @@ store/        Store routes and blocks
 
 - Reviewers get no email about new applications. They check the queue.
 - Applicants get no email with their reference and status code, and the code can't be recovered.
-- The eligibility check is simulated.
+- The eligibility check and the identifier checks are simulated.
+- PAN and bank account numbers aren't encrypted at rest. Master Data v2 has no field-level access control, so anyone allowed to read the entity through the Master Data API can read them.
+- GSTIN isn't checked. The tax ID stays a free-text field.
 - Documents in Master Data v1 can be read by anyone who knows both their random ID and file name. Neither ever leaves the server, but real company documents should move to private file storage behind the `DocumentStore` interface.
 - The rate limit is per server instance and resets on restart. A public launch needs a CAPTCHA or an edge rate limit.
 - Refusal of a reviewer without Buyer Organization permissions hasn't been tested yet (Test 4).

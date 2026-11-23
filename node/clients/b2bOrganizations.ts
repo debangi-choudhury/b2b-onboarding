@@ -58,7 +58,13 @@ export class B2BOrganizations extends AppGraphQLClient {
   public async createRequest(input: Json): Promise<string> {
     const result = await this.graphql.mutate<CreateResponse, { input: Json }>(
       { mutate: CREATE_REQUEST, variables: { input } },
-      { headers: this.adminHeaders(), metric: 'b2b-org-create-request' }
+      {
+        headers: this.adminHeaders(),
+        metric: 'b2b-org-create-request',
+        // A retry after a timeout could create a second request, and so a
+        // second organization. The caller saves the ID and reuses it instead.
+        retries: 0,
+      }
     )
 
     const id = result.data?.createOrganizationRequest?.id

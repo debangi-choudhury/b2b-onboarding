@@ -225,7 +225,7 @@ describe('verification', () => {
     const t = recordVerification(
       atCheck,
       'compliance-check',
-      FAILED,
+      { registry: FAILED },
       REVIEWER,
       NOW
     )

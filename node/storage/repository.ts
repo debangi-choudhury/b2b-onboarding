@@ -31,6 +31,26 @@ const EVENT_FIELDS = ['id', ...Object.keys(EVENT_SCHEMA.properties)]
 
 export const MAX_PAGE_SIZE = 50
 
+interface StoredSchema {
+  title?: string
+  properties?: Record<string, unknown>
+}
+
+/** Same title, and every property the code declares is already there */
+export function schemaIsCurrent(
+  stored: StoredSchema,
+  wanted: { title: string; properties: Record<string, unknown> }
+): boolean {
+  const storedProperties = Object.keys(stored.properties ?? {})
+
+  return (
+    stored.title === wanted.title &&
+    Object.keys(wanted.properties).every((key) =>
+      storedProperties.includes(key)
+    )
+  )
+}
+
 // Checked once per process.
 let schemasReady: Promise<void> | null = null
 
@@ -60,22 +80,25 @@ export class ApplicationRepository {
   }
 
   /**
-   * Writes the schema only when the stored one has a different title, because
-   * every schema write locks the entity's schema for about 12 hours. If the
-   * entity is locked but a schema exists, carry on with it.
+   * Writes the schema only when the stored one has a different title or lacks
+   * a property, because every schema write locks the entity's schema for about
+   * 12 hours. If the entity is locked but a schema exists, carry on with it.
    */
-  private async ensureSchema(dataEntity: string, body: { title: string }) {
-    let stored: { title?: string } | null = null
+  private async ensureSchema(
+    dataEntity: string,
+    body: { title: string; properties: Record<string, unknown> }
+  ) {
+    let stored: StoredSchema | null = null
 
     try {
-      stored = await this.md.getSchema<{ title?: string }>(dataEntity, SCHEMA)
+      stored = await this.md.getSchema<StoredSchema>(dataEntity, SCHEMA)
     } catch (e) {
       if (statusOf(e) !== 404) {
         throw e
       }
     }
 
-    if (stored?.title === body.title) {
+    if (stored && schemaIsCurrent(stored, body)) {
       return
     }
 

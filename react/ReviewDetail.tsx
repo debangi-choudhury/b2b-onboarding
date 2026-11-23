@@ -20,10 +20,14 @@ import type {
   ApplicationDetail,
   DocumentInfo,
   HistoryEvent,
+  KycCheckInfo,
+  RevealableIdentifier,
 } from './admin/types'
 import APPLICATION from './graphql/application.graphql'
+import DECIDE_KYC_CHECK from './graphql/decideKycCheck.graphql'
 import DECIDE_STAGE from './graphql/decideStage.graphql'
 import DOCUMENT from './graphql/document.graphql'
+import REVEAL_IDENTIFIER from './graphql/revealIdentifier.graphql'
 import REVIEW_DOCUMENT from './graphql/reviewDocument.graphql'
 import RUN_VERIFICATION from './graphql/runVerification.graphql'
 import { formatSize } from './utils/fields'
@@ -49,6 +53,56 @@ const EVENT_LABEL: Record<string, Message> = {
   APPROVED: m.evAPPROVED,
   REJECTED: m.evREJECTED,
   APPROVAL_FAILED: m.evAPPROVAL_FAILED,
+  KYC_DECIDED: m.evKYC_DECIDED,
+  IDENTIFIER_REVEALED: m.evIDENTIFIER_REVEALED,
+}
+
+const KYC_KIND: Record<string, Message> = {
+  PAN: m.kycPAN,
+  IEC: m.kycIEC,
+  UDYAM: m.kycUDYAM,
+  BANK_ACCOUNT: m.kycBANK_ACCOUNT,
+}
+
+const KYC_STATUS: Record<string, Message> = {
+  VERIFIED: m.kycVERIFIED,
+  FAILED: m.kycFAILED,
+  MANUAL_REVIEW: m.kycMANUAL_REVIEW,
+}
+
+const MATCH_BAND: Record<string, Message> = {
+  STRONG: m.matchSTRONG,
+  PARTIAL: m.matchPARTIAL,
+  NONE: m.matchNONE,
+}
+
+const REVEALED_LABEL: Record<string, Message> = {
+  PAN: m.pan,
+  BANK_ACCOUNT: m.accountNumber,
+}
+
+const DECISION_NOTE_MIN = 10
+
+/** The tag a check shows: a reviewer's decision wins over the status */
+function checkTag(check: KycCheckInfo): {
+  type: 'success' | 'error' | 'warning'
+  label: Message
+} {
+  if (check.effectiveStatus === 'MANUAL_REVIEW' && check.decision) {
+    return check.decision.decision === 'ACCEPTED'
+      ? { type: 'success', label: m.kycAccepted }
+      : { type: 'error', label: m.kycRejected }
+  }
+
+  return {
+    type:
+      check.effectiveStatus === 'VERIFIED'
+        ? 'success'
+        : check.effectiveStatus === 'FAILED'
+        ? 'error'
+        : 'warning',
+    label: KYC_STATUS[check.effectiveStatus],
+  }
 }
 
 function errorText(e: unknown): string {
@@ -179,7 +233,30 @@ function HistoryList({ events }: { events: HistoryEvent[] }) {
               DOC_STATUS[parsed.decision] ?? m.docNEEDS_REVIEW
             )}`
           } else if (event.type === 'VERIFICATION_RUN' && parsed) {
-            detail = `${parsed.status}: ${parsed.message}`
+            const kyc = Array.isArray(parsed.kyc)
+              ? (parsed.kyc as Array<{ kind: string; status: string }>)
+                  .map(
+                    (c) =>
+                      `${intl.formatMessage(
+                        KYC_KIND[c.kind] ?? m.kycTitle
+                      )}: ${intl.formatMessage(
+                        KYC_STATUS[c.status] ?? m.kycMANUAL_REVIEW
+                      )}`
+                  )
+                  .join(' · ')
+              : ''
+
+            detail = `${parsed.status}: ${parsed.message}${
+              kyc ? ` · ${kyc}` : ''
+            }`
+          } else if (event.type === 'KYC_DECIDED' && parsed) {
+            detail = `${intl.formatMessage(
+              KYC_KIND[parsed.kind] ?? m.kycTitle
+            )}: ${intl.formatMessage(
+              parsed.decision === 'ACCEPTED' ? m.kycAccepted : m.kycRejected
+            )}`
+          } else if (event.type === 'IDENTIFIER_REVEALED' && parsed) {
+            detail = intl.formatMessage(REVEALED_LABEL[parsed.field] ?? m.pan)
           } else if (event.type === 'APPROVAL_FAILED' && parsed) {
             detail = parsed.message
           }
@@ -231,6 +308,8 @@ function ReviewDetail({ params }: { params: { id: string } }) {
   const [reviewDoc] = useMutation(REVIEW_DOCUMENT)
   const [runCheck] = useMutation(RUN_VERIFICATION)
   const [decideStage] = useMutation(DECIDE_STAGE)
+  const [decideCheck] = useMutation(DECIDE_KYC_CHECK)
+  const [reveal] = useMutation(REVEAL_IDENTIFIER)
 
   const [busy, setBusy] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -239,6 +318,16 @@ function ReviewDetail({ params }: { params: { id: string } }) {
   const [rejectingApp, setRejectingApp] = useState(false)
   const [note, setNote] = useState('')
   const [reason, setReason] = useState('')
+  const [revealed, setRevealed] = useState<
+    Partial<Record<RevealableIdentifier, string>>
+  >({})
+
+  const [deciding, setDeciding] = useState<{
+    check: KycCheckInfo
+    decision: 'ACCEPT' | 'REJECT'
+  } | null>(null)
+
+  const [decisionNote, setDecisionNote] = useState('')
 
   const app = data?.onboardingApplication
   const stage = app?.currentStage ?? null
@@ -258,11 +347,37 @@ function ReviewDetail({ params }: { params: { id: string } }) {
       setReason('')
       setRejectingDoc(null)
       setRejectingApp(false)
+      setDeciding(null)
+      setDecisionNote('')
     } catch (e) {
       setActionError(
         intl.formatMessage(m.actionFailed, { message: errorText(e) })
       )
       await refetch().catch(() => {})
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  // Opens one full identifier. The server records it, so the history is
+  // reloaded; the reviewer's unsent notes are left alone.
+  const showFull = async (field: RevealableIdentifier) => {
+    if (!app) return
+
+    setBusy(`reveal-${field}`)
+    setActionError(null)
+
+    try {
+      const result = await reveal({ variables: { id: app.id, field } })
+      const full = (result as { data?: { revealIdentifier?: string } }).data
+        ?.revealIdentifier
+
+      if (full) setRevealed((prev) => ({ ...prev, [field]: full }))
+      await refetch()
+    } catch (e) {
+      setActionError(
+        intl.formatMessage(m.actionFailed, { message: errorText(e) })
+      )
     } finally {
       setBusy(null)
     }
@@ -310,15 +425,61 @@ function ReviewDetail({ params }: { params: { id: string } }) {
     (stage.type === 'REVIEW'
       ? pendingDocs === 0
       : stage.type === 'VERIFICATION'
-      ? app.verification?.status === 'PASSED'
+      ? app.verificationOutcome === 'READY'
       : true)
 
   const passHint =
     stage?.type === 'REVIEW'
       ? m.passHintReview
-      : stage?.type === 'VERIFICATION'
-      ? m.passHintVerification
-      : m.passHintApproval
+      : stage?.type !== 'VERIFICATION'
+      ? m.passHintApproval
+      : app.verificationOutcome === 'NEEDS_DECISION'
+      ? m.passHintNeedsDecision
+      : app.verificationOutcome === 'BLOCKED'
+      ? m.passHintBlocked
+      : m.passHintVerification
+
+  const atVerification =
+    stage?.type === 'VERIFICATION' && app.status === 'IN_REVIEW'
+
+  const identifier = (
+    labelText: string,
+    masked: string,
+    field: RevealableIdentifier
+  ) => (
+    <div className="mb3">
+      <div className="t-mini c-muted-1">{labelText}</div>
+      <div className="flex items-center flex-wrap">
+        <span
+          className="t-body c-on-base mr3"
+          style={{ fontFamily: 'monospace' }}
+        >
+          {revealed[field] ?? masked}
+        </span>
+        {revealed[field] ? (
+          <Button
+            size="small"
+            variation="tertiary"
+            onClick={() =>
+              setRevealed((prev) => ({ ...prev, [field]: undefined }))
+            }
+          >
+            {intl.formatMessage(m.hideFull)}
+          </Button>
+        ) : (
+          <Button
+            size="small"
+            variation="tertiary"
+            isLoading={busy === `reveal-${field}`}
+            disabled={!!busy}
+            onClick={() => showFull(field)}
+          >
+            {intl.formatMessage(m.showFull)}
+          </Button>
+        )}
+      </div>
+    </div>
+  )
 
   return (
     <Layout pageHeader={header}>
@@ -434,6 +595,48 @@ function ReviewDetail({ params }: { params: { id: string } }) {
             value={app.registrationNumber}
           />
           <Field label={intl.formatMessage(m.taxId)} value={app.taxId} />
+          {app.india && (
+            <>
+              <h3 className="t-heading-5">
+                {intl.formatMessage(m.indiaIdentifiers)}
+              </h3>
+              <p className="t-mini c-muted-1 mt0">
+                {intl.formatMessage(m.revealNotice)}
+              </p>
+              {identifier(
+                intl.formatMessage(m.pan),
+                app.india.maskedPan,
+                'PAN'
+              )}
+              <Field
+                label={intl.formatMessage(m.importsOrExports)}
+                value={intl.formatMessage(
+                  app.india.importsOrExports ? m.yes : m.no
+                )}
+              />
+              <Field label={intl.formatMessage(m.iec)} value={app.india.iec} />
+              <Field
+                label={intl.formatMessage(m.udyam)}
+                value={app.india.udyam}
+              />
+              <h3 className="t-heading-5">
+                {intl.formatMessage(m.bankAccount)}
+              </h3>
+              {identifier(
+                intl.formatMessage(m.accountNumber),
+                app.india.maskedAccountNumber,
+                'BANK_ACCOUNT'
+              )}
+              <Field
+                label={intl.formatMessage(m.ifsc)}
+                value={app.india.ifsc}
+              />
+              <Field
+                label={intl.formatMessage(m.accountHolder)}
+                value={app.india.accountHolderName}
+              />
+            </>
+          )}
           <h3 className="t-heading-5">{intl.formatMessage(m.address)}</h3>
           <div className="t-body c-on-base">
             {[app.address.street, app.address.number, app.address.complement]
@@ -587,6 +790,108 @@ function ReviewDetail({ params }: { params: { id: string } }) {
               {intl.formatMessage(m.notChecked)}
             </p>
           )}
+          {app.india && (
+            <div className="mb5">
+              <h3 className="t-heading-5 mb2">
+                {intl.formatMessage(m.kycTitle)}
+              </h3>
+              <p className="t-small c-muted-1 mt0">
+                {intl.formatMessage(m.kycDemoNotice)}
+              </p>
+              {!app.kycChecks?.length && (
+                <p className="t-body c-muted-1">
+                  {intl.formatMessage(m.kycNotChecked)}
+                </p>
+              )}
+              {(app.kycChecks ?? []).map((check) => {
+                const tag = checkTag(check)
+
+                return (
+                  <div
+                    key={check.kind}
+                    className="flex flex-wrap items-start justify-between pv4 bb b--muted-5"
+                  >
+                    <div className="mb2" style={{ flex: '1 1 320px' }}>
+                      <div className="t-body c-on-base">
+                        {intl.formatMessage(KYC_KIND[check.kind])}{' '}
+                        <Tag size="small" variation="low" type={tag.type}>
+                          {intl.formatMessage(tag.label)}
+                        </Tag>
+                      </div>
+                      <div className="t-small c-on-base mt1">
+                        {check.message}
+                      </div>
+                      {check.nameMatch && (
+                        <div className="t-small c-muted-1 mt1">
+                          {intl.formatMessage(m.nameMatchDetail, {
+                            band: intl.formatMessage(
+                              MATCH_BAND[check.nameMatch.band]
+                            ),
+                            score: Math.round(check.nameMatch.score * 100),
+                            registered: check.nameMatch.registeredName,
+                            applied: check.nameMatch.comparedWith,
+                          })}
+                        </div>
+                      )}
+                      <div className="t-mini c-muted-1 mt1">
+                        {intl.formatMessage(m.checkedBy, {
+                          provider: check.provider,
+                          reference: check.reference,
+                          date: date(check.checkedAt),
+                        })}
+                      </div>
+                      {check.decision && (
+                        <div className="t-mini c-muted-1 mt1">
+                          {intl.formatMessage(m.decisionDetail, {
+                            decision: intl.formatMessage(
+                              check.decision.decision === 'ACCEPTED'
+                                ? m.kycAccepted
+                                : m.kycRejected
+                            ),
+                            actor: check.decision.actor,
+                            date: date(check.decision.at),
+                            note: check.decision.note,
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    {atVerification &&
+                      stage &&
+                      check.effectiveStatus === 'MANUAL_REVIEW' && (
+                        <div className="flex">
+                          <div className="mr3">
+                            <Button
+                              size="small"
+                              disabled={
+                                !!busy ||
+                                check.decision?.decision === 'ACCEPTED'
+                              }
+                              onClick={() =>
+                                setDeciding({ check, decision: 'ACCEPT' })
+                              }
+                            >
+                              {intl.formatMessage(m.acceptCheck)}
+                            </Button>
+                          </div>
+                          <Button
+                            size="small"
+                            variation="danger-tertiary"
+                            disabled={
+                              !!busy || check.decision?.decision === 'REJECTED'
+                            }
+                            onClick={() =>
+                              setDeciding({ check, decision: 'REJECT' })
+                            }
+                          >
+                            {intl.formatMessage(m.rejectCheck)}
+                          </Button>
+                        </div>
+                      )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
           {stage?.type === 'VERIFICATION' && app.status === 'IN_REVIEW' && (
             <Button
               variation="secondary"
@@ -663,6 +968,59 @@ function ReviewDetail({ params }: { params: { id: string } }) {
             rows={3}
             maxLength={1000}
             onChange={(e) => setNote(e.target.value)}
+          />
+        </Modal>
+      )}
+
+      {deciding && stage && (
+        <Modal
+          isOpen
+          onClose={() => setDeciding(null)}
+          title={intl.formatMessage(m.decideCheckTitle, {
+            decision: intl.formatMessage(
+              deciding.decision === 'ACCEPT' ? m.acceptCheck : m.rejectCheck
+            ),
+            check: intl.formatMessage(KYC_KIND[deciding.check.kind]),
+          })}
+          bottomBar={
+            <div className="flex justify-end">
+              <div className="mr3">
+                <Button variation="tertiary" onClick={() => setDeciding(null)}>
+                  {intl.formatMessage(m.cancel)}
+                </Button>
+              </div>
+              <Button
+                variation={
+                  deciding.decision === 'ACCEPT' ? 'primary' : 'danger'
+                }
+                isLoading={busy === 'decide-check'}
+                disabled={decisionNote.trim().length < DECISION_NOTE_MIN}
+                onClick={() =>
+                  act('decide-check', () =>
+                    decideCheck({
+                      variables: {
+                        id: app.id,
+                        stageId: stage.id,
+                        kind: deciding.check.kind,
+                        decision: deciding.decision,
+                        note: decisionNote,
+                      },
+                    })
+                  )
+                }
+              >
+                {intl.formatMessage(m.confirmDecision)}
+              </Button>
+            </div>
+          }
+        >
+          <p className="t-body c-on-base mt0">{deciding.check.message}</p>
+          <Textarea
+            label={intl.formatMessage(m.decisionNote)}
+            value={decisionNote}
+            rows={3}
+            maxLength={1000}
+            onChange={(e) => setDecisionNote(e.target.value)}
           />
         </Modal>
       )}

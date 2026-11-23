@@ -1,6 +1,26 @@
 import { ExternalClient } from '@vtex/api'
 import type { InstanceOptions, IOContext } from '@vtex/api'
 
+/**
+ * A failed write's error carries the request, and so the document: for India
+ * applications, a PAN and a bank account number. Errors can end up in logs,
+ * so writes throw this instead, with only the HTTP status.
+ */
+export class MasterDataWriteError extends Error {
+  public readonly response: { status?: number }
+
+  constructor(operation: string, cause: unknown) {
+    const status = (cause as { response?: { status?: number } }).response
+      ?.status
+
+    super(
+      `Master Data ${operation} failed${status ? ` with HTTP ${status}` : ''}`
+    )
+    this.name = 'MasterDataWriteError'
+    this.response = { status }
+  }
+}
+
 interface Pagination {
   page: number
   pageSize: number
@@ -60,30 +80,43 @@ export class AccountMasterData extends ExternalClient {
     fields: object,
     schema?: string
   ): Promise<string> {
-    const result = await this.http.post<{ DocumentId: string }>(
-      `${entity}/documents`,
-      fields,
-      { params: schema ? { _schema: schema } : {}, metric: 'amd-create' }
-    )
+    try {
+      const result = await this.http.post<{ DocumentId: string }>(
+        `${entity}/documents`,
+        fields,
+        {
+          params: schema ? { _schema: schema } : {},
+          metric: 'amd-create',
+          // Creates a document: a retry after a timeout could create it twice
+          retries: 0,
+        }
+      )
 
-    return result.DocumentId
+      return result.DocumentId
+    } catch (e) {
+      throw new MasterDataWriteError('create', e)
+    }
   }
 
   /** Creates or replaces a whole document under the given ID */
-  public putDocument(
+  public async putDocument(
     entity: string,
     id: string,
     fields: object,
     schema?: string
   ) {
-    return this.http.put(
-      `${entity}/documents/${encodeURIComponent(id)}`,
-      fields,
-      {
-        params: schema ? { _schema: schema } : {},
-        metric: 'amd-put',
-      }
-    )
+    try {
+      return await this.http.put(
+        `${entity}/documents/${encodeURIComponent(id)}`,
+        fields,
+        {
+          params: schema ? { _schema: schema } : {},
+          metric: 'amd-put',
+        }
+      )
+    } catch (e) {
+      throw new MasterDataWriteError('save', e)
+    }
   }
 
   public deleteDocument(entity: string, id: string) {

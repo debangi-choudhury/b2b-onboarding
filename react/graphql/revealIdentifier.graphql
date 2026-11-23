@@ -1,0 +1,3 @@
+mutation RevealIdentifier($id: ID!, $field: RevealableIdentifier!) {
+  revealIdentifier(id: $id, field: $field) @context(provider: "logixalpartnerus.b2b-onboarding")
+}

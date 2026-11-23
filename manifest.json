@@ -1,9 +1,9 @@
 {
   "vendor": "logixalpartnerus",
   "name": "b2b-onboarding",
-  "version": "0.2.2",
+  "version": "0.3.1",
   "title": "B2B Onboarding",
-  "description": "Business applications with document upload, verification and staged approval for B2B Organizations",
+  "description": "Business applications with document upload, verification, India KYC checks and staged approval for B2B Organizations",
   "builders": {
     "node": "7.x",
     "graphql": "2.x",
@@ -39,6 +39,18 @@
     "title": "B2B Onboarding",
     "type": "object",
     "properties": {
+      "kycProvider": {
+        "title": "KYC provider (India)",
+        "description": "Checks PAN, IEC, Udyam and bank account details on applications from India. Only the demo provider is available, which simulates results from the last digit of each number.",
+        "type": "string",
+        "enum": [
+          "mock"
+        ],
+        "enumNames": [
+          "Demo provider (simulated)"
+        ],
+        "default": "mock"
+      },
       "stages": {
         "title": "Approval stages",
         "description": "Stages each new application goes through, in order. Leave empty for the default: Document review, Compliance check, Final approval. The last stage must be of type APPROVAL, and at most one stage can be VERIFICATION. Applications already submitted keep their stages.",
