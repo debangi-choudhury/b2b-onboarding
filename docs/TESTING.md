@@ -67,7 +67,7 @@ All in `b2btest` on 2026-11-24, logged in to the store and Admin.
 
 ### Found during testing
 
-- The first attempt to delete the uploaded files failed: the request sent `Accept: application/json`. The `BD` table answered `204` with `Accept: application/vnd.vtex.ds.v10+json`. Its fields are private, so it can't be searched by application; the test files were found by their creation time instead.
+- The first attempt to delete the uploaded files failed with `404`: an application's `storageId` is `<record ID>/<stored file name>`, and the whole value was sent as the record ID. Deleting a `BD` record needs only the part before the `/`. The `BD` table's fields are private, so it can't be searched by application; the test files were found by their creation time, and their records deleted with `204`.
 - The `BD` table's display name contains a task code. The Master Data API only allows reading a table's settings (`405`, `Allow: GET`), so it must be renamed in Admin.
 
 ### Not tested
