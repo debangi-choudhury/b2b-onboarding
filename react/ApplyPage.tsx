@@ -30,7 +30,9 @@ import {
   INDIA_COMPANY_FIELDS,
   isIndia,
 } from './utils/fields'
+import { countryName } from './utils/countries'
 import { documentLabels, fieldLabels, messages } from './utils/messages'
+import { normalizeRootPath } from './utils/rootPath'
 import {
   card,
   color,
@@ -155,7 +157,7 @@ function stepsFor(country: string | undefined): Step[] {
 function ApplyPage() {
   const intl = useIntl()
   const handles = useCssHandles(CSS_HANDLES)
-  const { rootPath = '' } = useRuntime()
+  const rootPath = normalizeRootPath(useRuntime().rootPath)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const firstRender = useRef(true)
 
@@ -362,7 +364,7 @@ function ApplyPage() {
 
   const countrySelect = select(
     'address.country',
-    COUNTRIES.map((code) => ({ value: code, label: code })),
+    COUNTRIES.map((code) => ({ value: code, label: countryName(intl, code) })),
     (selected) => {
       // The steps change when India is chosen or left, so steps reached
       // earlier no longer line up: make people walk through them again.
@@ -494,7 +496,9 @@ function ApplyPage() {
           color: color.textSoft,
         }}
       >
-        {intl.formatMessage(messages.countryOnCompanyStep, { country })}{' '}
+        {intl.formatMessage(messages.countryOnCompanyStep, {
+          country: countryName(intl, country),
+        })}{' '}
         <button
           type="button"
           onClick={() => goTo(indexOf('company'))}
@@ -545,7 +549,7 @@ function ApplyPage() {
       rows: [
         {
           label: intl.formatMessage(fieldLabels['address.country']),
-          value: country ?? '',
+          value: countryName(intl, country),
         },
         ...rowsOf(COMPANY_FIELDS),
         ...(india

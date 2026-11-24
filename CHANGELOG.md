@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-24
+
+### Fixed
+
+- Links on the receipt and the status page are built from the binding's path prefix with any trailing slash removed. A prefix of `/` could have produced `//business-application`, which browsers open as a different website.
+
+### Changed
+
+- The country list in the form, the Review step and the Admin application page show country names, such as India, instead of codes such as IND. The form still sends the code.
+- The Admin stage stepper shows a readable stage type under each stage (Manual review, Automated check or Final decision) instead of the internal type.
+
 ## [0.3.1] - 2026-11-23
 
 Changes from a review against VTEX's IO guidance (https://github.com/vtex/skills).

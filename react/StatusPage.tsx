@@ -7,6 +7,7 @@ import { NextSteps } from './components/SidePanels'
 import { fetchStatus } from './utils/api'
 import type { ApplicantView } from './utils/api'
 import { messages } from './utils/messages'
+import { normalizeRootPath } from './utils/rootPath'
 import { card, color, input, label, primaryButton } from './utils/theme'
 
 const CSS_HANDLES = [
@@ -27,7 +28,8 @@ const BADGE = {
 function StatusPage() {
   const intl = useIntl()
   const handles = useCssHandles(CSS_HANDLES)
-  const { rootPath = '', query } = useRuntime()
+  const { rootPath: rawRootPath, query } = useRuntime()
+  const rootPath = normalizeRootPath(rawRootPath)
 
   // The reference may come from the link on the receipt. The code never does.
   const [reference, setReference] = useState(query?.reference ?? '')
