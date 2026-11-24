@@ -14,6 +14,7 @@ import {
 } from 'vtex.styleguide'
 import { useRuntime } from 'vtex.render-runtime'
 
+import { adminCountryNames } from './admin/countries'
 import { adminMessages as m } from './admin/messages'
 import { StageStepper, StatusTag } from './admin/StageStepper'
 import type {
@@ -30,6 +31,7 @@ import DOCUMENT from './graphql/document.graphql'
 import REVEAL_IDENTIFIER from './graphql/revealIdentifier.graphql'
 import REVIEW_DOCUMENT from './graphql/reviewDocument.graphql'
 import RUN_VERIFICATION from './graphql/runVerification.graphql'
+import { countryName } from './utils/countries'
 import { formatSize } from './utils/fields'
 
 type Message = { id: string; defaultMessage: string }
@@ -645,7 +647,7 @@ function ReviewDetail({ params }: { params: { id: string } }) {
             <br />
             {app.address.city}, {app.address.state} {app.address.postalCode}
             <br />
-            {app.address.country}
+            {countryName(intl, app.address.country, adminCountryNames)}
           </div>
         </div>
         <div>

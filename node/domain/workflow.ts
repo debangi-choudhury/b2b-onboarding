@@ -216,8 +216,7 @@ export function reviewDocument(
 /**
  * The full history, oldest first: stored events, plus document reviews, KYC
  * decisions and identifier reveals. Those live on the application record,
- * because the history entity's schema is hard to change (see D4 in
- * B2B-085-PLAN.md).
+ * because the history entity's schema is hard to change once in use.
  */
 export function fullHistory(
   app: Application,

@@ -10,17 +10,17 @@ import type { DocumentStore } from './documentStore'
  * Nothing is readable or writable without credentials.
  *
  * A dedicated entity "OB" was planned, but the legacy screen failed to save it
- * on 2026-11-12, so the user chose to reuse BD. Its display name still says
- * "B2B-C11 TEST attachment spike". The file's name, type and size are kept in
- * the application's own record (DocumentRef), not here.
+ * on 2026-11-12, so the user chose to reuse BD. Its display name still refers
+ * to that attachment test. The file's name, type and size are kept in the
+ * application's own record (DocumentRef), not here.
  */
 export const DOCUMENT_ENTITY = 'BD'
 const FILE_FIELD = 'file'
 
 /**
  * Master Data v1 serves an attachment to ANYONE who knows the document ID and
- * file name, and accepts uploads the same way (tested 2026-11-11, see
- * B2B-C11-PLAN.md). So both are random and never leave the server: one
+ * file name, and accepts uploads the same way (tested 2026-11-11). So both
+ * are random and never leave the server: one
  * random-ID document per file, stored under a random name.
  */
 export class MasterDataDocumentStore implements DocumentStore {

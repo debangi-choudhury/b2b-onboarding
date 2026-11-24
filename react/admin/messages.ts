@@ -2,6 +2,18 @@ import { defineMessages } from 'react-intl'
 
 // Every Admin message is declared here so the react builder can extract it.
 export const adminMessages = defineMessages({
+  stageTypeReview: {
+    id: 'admin/b2b-onboarding.stage-type.review',
+    defaultMessage: 'Manual review',
+  },
+  stageTypeVerification: {
+    id: 'admin/b2b-onboarding.stage-type.verification',
+    defaultMessage: 'Automated check',
+  },
+  stageTypeApproval: {
+    id: 'admin/b2b-onboarding.stage-type.approval',
+    defaultMessage: 'Final decision',
+  },
   navTitle: {
     id: 'admin/b2b-onboarding.navigation.title',
     defaultMessage: 'B2B onboarding',

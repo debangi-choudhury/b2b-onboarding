@@ -20,7 +20,8 @@
   "jest": {
     "testEnvironment": "node",
     "testMatch": [
-      "<rootDir>/node/__tests__/**/*.test.ts"
+      "<rootDir>/node/__tests__/**/*.test.ts",
+      "<rootDir>/react/__tests__/**/*.test.ts"
     ],
     "transform": {
       "^.+\\.ts$": [

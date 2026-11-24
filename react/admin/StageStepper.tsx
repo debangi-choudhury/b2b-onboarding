@@ -26,6 +26,12 @@ const CIRCLE: Record<StepState, string> = {
   todo: 'bg-base c-muted-2 b--muted-4',
 }
 
+const STAGE_TYPE_LABEL = {
+  REVIEW: adminMessages.stageTypeReview,
+  VERIFICATION: adminMessages.stageTypeVerification,
+  APPROVAL: adminMessages.stageTypeApproval,
+}
+
 /** The application's stages as a horizontal stepper */
 export function StageStepper({
   stages,
@@ -36,6 +42,8 @@ export function StageStepper({
   currentStageIndex: number
   status: ApplicationStatus
 }) {
+  const intl = useIntl()
+
   return (
     <ol className="flex list pa0 ma0">
       {stages.map((stage, index) => {
@@ -68,7 +76,9 @@ export function StageStepper({
               {state === 'done' ? '✓' : state === 'rejected' ? '✕' : index + 1}
             </span>
             <div className="t-small c-on-base mt2">{stage.label}</div>
-            <div className="t-mini c-muted-1">{stage.type.toLowerCase()}</div>
+            <div className="t-mini c-muted-1">
+              {intl.formatMessage(STAGE_TYPE_LABEL[stage.type])}
+            </div>
           </li>
         )
       })}

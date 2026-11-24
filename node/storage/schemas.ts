@@ -48,7 +48,7 @@ export const APPLICATION_SCHEMA = {
     currentStageIndex: { type: 'integer' },
     currentStageId: { type: 'string', maxLength: 40 },
     verification: { type: ['object', 'null'] },
-    // India applications only (B2B-085). Never indexed: PAN and bank details
+    // India applications only. Never indexed: PAN and bank details
     // must not be searchable. The API masks them; see maskedIndia.
     india: { type: ['object', 'null'] },
     kycChecks: { type: ['array', 'null'], items: { type: 'object' } },
