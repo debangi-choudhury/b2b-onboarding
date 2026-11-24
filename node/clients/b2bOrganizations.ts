@@ -48,7 +48,7 @@ interface GetResponse {
  *
  * Every call carries the reviewer's admin token. B2B Organizations refuses the
  * app token ("No token was provided"), so the app can never approve anything
- * on its own authority. Tested in the Phase 1 spike, see B2B-C11-PLAN.md.
+ * on its own authority. Tested on 2026-11-11.
  */
 export class B2BOrganizations extends AppGraphQLClient {
   constructor(ctx: IOContext, options?: InstanceOptions) {

@@ -5,9 +5,9 @@ Verified sign-up for B2B customers on VTEX. Companies apply with their documents
 | | |
 | --- | --- |
 | App | `logixalpartnerus.b2b-onboarding` |
-| Version | 0.3.0 |
+| Version | 0.3.1 |
 | Live in | workspace `b2btest` (https://b2btest--logixalpartnerus.myvtex.com/) |
-| Task | B2B-C11, and B2B-085 (India identifier checks, 0.3.0), from Logixal's development sheet |
+| Purpose | Customer onboarding and verification, with India business identifier checks since 0.3.0, from Logixal's development sheet |
 | Status | Internal demo app for prospective clients. All demo data is labelled `TEST` |
 
 Shorter app-store description: [docs/README.md](docs/README.md). Version history: [CHANGELOG.md](CHANGELOG.md).
