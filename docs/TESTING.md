@@ -21,8 +21,9 @@ Reviewed against the VTEX IO track of https://github.com/vtex/skills. Version 0.
 ## Automated checks
 
 ```bash
-yarn lint                        # 0 errors; 21 warnings for accepted `any` types
-yarn test                        # 247 tests (backend, review resolvers and React helpers)
+yarn lint                        # 0 errors; 32 warnings, mostly accepted `any` types and test style
+yarn test                        # 345 tests: server, public routes, storage, clients and every screen
+yarn test:coverage               # 98% of lines, 92% of branches; fails under 80% (70% for branches)
 cd react && npx tsc --noEmit     # no errors
 cd node && npx tsc --noEmit      # no errors
 cd node/__tests__ && npx tsc --noEmit -p .   # no errors (the tests)
