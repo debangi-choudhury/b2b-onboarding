@@ -12,7 +12,7 @@ Verified sign-up for B2B customers on VTEX. Companies apply with their documents
 
 ![Application page at Compliance check](docs/images/review-stepper.jpg)
 
-Shorter app-store description: [docs/README.md](docs/README.md). Version history: [CHANGELOG.md](CHANGELOG.md).
+Full documentation: [user guide](docs/USER-GUIDE.md) and [technical reference](docs/TECHNICAL.md). Testing: [docs/TESTING.md](docs/TESTING.md). Shorter app-store description: [docs/README.md](docs/README.md). Version history: [CHANGELOG.md](CHANGELOG.md).
 
 ## Contents
 
@@ -310,7 +310,7 @@ Develop in workspace `b2bdev`, which has the same B2B stack and theme as `b2btes
 vtex whoami                      # confirm the workspace first
 yarn install && (cd node && yarn) && (cd react && yarn)
 yarn lint                        # 0 errors
-yarn test                        # unit tests in node/__tests__
+yarn test:coverage               # all tests, fails under the coverage threshold
 (cd node && npx tsc --noEmit)
 (cd react && npx tsc --noEmit)
 vtex link --no-watch             # in b2bdev
@@ -326,49 +326,9 @@ To release:
 
 ## Technical reference
 
-| Part | Details |
-| --- | --- |
-| Builders | node 7.x, graphql 2.x, react 3.x, store 0.x, admin 0.x, messages 1.x, docs 0.x |
-| Store pages | `store.custom#b2b-onboarding-apply` (`react/ApplyPage.tsx`) and `store.custom#b2b-onboarding-status` (`react/StatusPage.tsx`), added by the app with no theme change |
-| Admin pages | `react/ReviewQueue.tsx` and `react/ReviewDetail.tsx`, at `/admin/app/b2b-onboarding` and `/:id` |
-| Public endpoints | `POST /_v/b2b-onboarding/apply` (multipart: fields plus the two files) and `POST /_v/b2b-onboarding/status` (JSON: `reference`, `token`). They're REST so the status code never appears in a URL |
-| Reviewer GraphQL | `onboardingApplications`, `onboardingApplication`, `onboardingStages` and `onboardingDocument` need Buyer Organization View. `reviewDocument`, `runVerification` and `decideStage` need Buyer Organization Edit |
-| Applications | Master Data v2 entity `b2b_onboarding_application`, schema `v1`. The document ID is the reference |
-| History | Master Data v2 entity `b2b_onboarding_event`, schema `v1`. Document reviews live on each document and are merged into the history by the API |
-| Documents | Master Data v1 entity `BD`, one document per file, under a random ID and random file name |
-| India KYC | `node/verification/kyc.ts` (`KycProvider`, `runKycChecks`), `mockKyc.ts`, `kycProviders.ts` (the setting). Rules in `node/domain`: `indiaIdentifiers.ts` (formats and masking, with an identical copy in `react/utils/` checked by a test), `nameMatch.ts` and `kycOutcome.ts` (`verificationOutcome`) |
-| India data | On the application: `india`, `kycChecks`, `kycDecisions` and `identifierReveals`, none indexed. Decisions and reveals are merged into the history by the API, like document reviews. The GraphQL `Application.india` type only has masked fields; `revealIdentifier` returns a full value and records it |
-| Approval | Calls `createOrganizationRequest`, then `updateOrganizationRequest(approved)`, on `vtex.b2b-organizations-graphql` 2.x, with the reviewer's own admin token. The new organization gets the request's ID |
-| Admin menu | `admin/navigation.json` uses the 3.x shape `[{"section": "storeSetup", "titleId", "path": "/admin/b2b-onboarding"}]`, which shows under Apps → Installed Apps |
-| Store redirect | `/organization-request` → `/business-application`, set per workspace in `b2bdev` and `b2btest`, not in `master` |
+Architecture, REST routes, GraphQL operations, workflow rules, data model, security, policies, code layout and the things that will bite you: [docs/TECHNICAL.md](docs/TECHNICAL.md).
 
-### Code layout
-
-```text
-admin/        Admin routes and menu entry
-graphql/      Reviewer GraphQL schema
-messages/     UI text (generated from react/utils/messages.ts and react/admin/messages.ts)
-node/
-  clients/       B2B Organizations, Master Data and attachment clients
-  domain/        Pure logic: validation, stages, workflow, documents (unit-tested)
-  resolvers/     Reviewer GraphQL resolvers
-  routes/        Public apply and status endpoints
-  storage/       Master Data schemas, repository, document store
-  verification/  EligibilityVerifier interface and the mock registry
-  __tests__/     Unit tests
-react/        Applicant pages, Admin pages and shared components
-store/        Store routes and blocks
-```
-
-### Things that will bite you
-
-- **After a first install or a new version, Master Data refuses the app for a few minutes,** and up to about 17 after the first install in a workspace. A fresh `vtex link` after an install took about 8. Wait until the status endpoint returns `NOT_FOUND` before testing.
-- **A Master Data v2 schema change locks that entity's schemas for about 12 hours.** Change schemas rarely. The app writes a schema when its title differs or a property is missing. Since 0.3.0, keep the titles as they are: 0.2.2 rewrites the schema whenever the title differs from its own.
-- **Older versions drop fields they don't know.** The app saves whole documents, so an older version acting on a newer record removes its newer fields. Keep every workspace on the same version.
-- Master Data v2 checks a PATCH against the schema's `required` fields, so the app always writes whole documents.
-- New GraphQL fields need a new minor version. Fields added with `extend type Query` return null.
-- React 16 reuses change events: read `e.target.value` before calling a state updater. This crashed the country field in 0.2.0.
-- Test with every input changed from its default, including dropdowns.
+Every screen, setting and message, with screenshots: [docs/USER-GUIDE.md](docs/USER-GUIDE.md).
 
 ## Known limitations
 
