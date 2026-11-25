@@ -5,10 +5,12 @@ Verified sign-up for B2B customers on VTEX. Companies apply with their documents
 | | |
 | --- | --- |
 | App | `logixalpartnerus.b2b-onboarding` |
-| Version | 0.3.2 |
+| Version | 0.3.3 |
 | Live in | workspace `b2btest` (https://b2btest--logixalpartnerus.myvtex.com/) |
 | Purpose | Customer onboarding and verification, with India business identifier checks since 0.3.0, from Logixal's development sheet |
 | Status | Internal demo app for prospective clients. All demo data is labelled `TEST` |
+
+![Application page at Compliance check](docs/images/review-stepper.jpg)
 
 Shorter app-store description: [docs/README.md](docs/README.md). Version history: [CHANGELOG.md](CHANGELOG.md).
 
@@ -16,15 +18,16 @@ Shorter app-store description: [docs/README.md](docs/README.md). Version history
 
 1. [What it does](#what-it-does)
 2. [Where to find it](#where-to-find-it)
-3. [The flow](#the-flow)
-4. [Applicant journey](#applicant-journey)
-5. [Reviewer journey](#reviewer-journey)
-6. [Rules and settings](#rules-and-settings)
-7. [Testing step by step](#testing-step-by-step)
-8. [Test data and clean-up](#test-data-and-clean-up)
-9. [Development and release](#development-and-release)
-10. [Technical reference](#technical-reference)
-11. [Known limitations](#known-limitations)
+3. [Demo script](#demo-script)
+4. [The flow](#the-flow)
+5. [Applicant journey](#applicant-journey)
+6. [Reviewer journey](#reviewer-journey)
+7. [Rules and settings](#rules-and-settings)
+8. [Testing step by step](#testing-step-by-step)
+9. [Test data and clean-up](#test-data-and-clean-up)
+10. [Development and release](#development-and-release)
+11. [Technical reference](#technical-reference)
+12. [Known limitations](#known-limitations)
 
 ## What it does
 
@@ -51,6 +54,21 @@ All links are for the final B2B store, workspace `b2btest`. Because it's a works
 | Applicant | Application status | `/business-application/status`, with the reference and the status code from the receipt |
 | Reviewer | Review queue | Admin menu **Apps → Installed Apps → B2B onboarding**, or `/admin/b2b-onboarding` |
 | Reviewer | Organizations created | **B2B Organizations → Organizations**. Each approval also appears under Organization Requests as an approved request |
+
+## Demo script
+
+About 10 minutes in `b2btest`, with two tabs: the application form (`/business-application`) and the Admin review queue. Applications are real account data and reviewer decisions can't be undone, so each demo uses up the applications it decides on.
+
+1. **The problem.** VTEX's native request is one form with a free-text tax ID and a single Approve or Decline: no documents, no checks, no stages, no history.
+2. **Apply from India.** Choose **India**: PAN, Udyam and "Do you import or export?" appear, and a Bank account step is added. Show `ABCPE1234F` refused as an individual's PAN, then use `ABCCK1234F`. Enter the company name as the account holder. Submit and copy the reference and status code.
+3. **Check the status** at `/business-application/status` with the reference and code: *In review*, at Document review.
+4. **Review.** Open the new application in the queue, accept both documents, pass Document review, then **Run check**: the registry, PAN and bank account pass, with name matches, and the numbers are masked.
+5. **A check that needs a person.** Open `APP-5N5UPWC4`: PAN and bank account need a review. Click **Show full number** (the history records it), accept each check with a note of at least 10 characters, and show the audit trail.
+6. **Final decision.** To approve live, take an application through to Final approval first (none waits there now), then **Approve and create organization**: it creates a real organization. Or explain approval with an approved one, such as `APP-5VKMQCZC`. Reject the application from step 2 with a reason, and show the applicant's status page saying *Not approved* with that reason.
+
+The checks are simulated in this demo (see [Rules and settings](#rules-and-settings)): a real provider plugs in behind the same interface, and the workflow stays the same. A bank account holder that doesn't match the company name fails the check, and the application can then only be rejected.
+
+Key messages: verified onboarding instead of a free-text form, a staged review the store configures, a full audit trail, and approval through VTEX's own B2B Organizations.
 
 ## The flow
 
@@ -84,11 +102,17 @@ Each step is checked before Continue. Back keeps what was typed. Beside the form
 
 After submitting, the applicant sees a receipt with a **reference** (`APP-XXXXXXXX`) and a **status code**. The status code is shown only once, and the store keeps only a scrambled version, so it can't be recovered or resent. With both, the status page shows *In review* with the current step, *Approved*, or *Not approved* with the reviewer's reason.
 
+![Company step for an Indian business](docs/images/form-company-india.jpg)
+
+![Application status page](docs/images/status-page.jpg)
+
 ## Reviewer journey
 
 Done in VTEX Admin by anyone with the Buyer Organization View and Edit permissions, for example the `b2b-admin` role.
 
 **Review queue.** Newest first. Filters: All, In review, Waiting for approval, Approved, Rejected. Each row shows the reference, company, registration number, submission date, a progress bar with the current step, and a status tag.
+
+![Review queue in Admin](docs/images/review-queue.jpg)
 
 **Application page:**
 
@@ -98,6 +122,8 @@ Done in VTEX Admin by anyone with the Buyer Organization View and Edit permissio
 - Eligibility check: the result, the provider and its reference.
 - For India: the identifiers, with PAN and account number masked (**Show full number** opens one and is recorded), and each identifier check with its result, name match and any decision. Checks that need a review have **Accept** and **Reject**, which need a note of 10 to 1000 characters.
 - Audit trail: every step in order, with who and when.
+
+![India identifier checks on the application page](docs/images/review-kyc.jpg)
 
 **What each stage needs:**
 
