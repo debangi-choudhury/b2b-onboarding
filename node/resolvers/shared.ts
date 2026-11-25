@@ -62,9 +62,22 @@ export async function loadApplication(
   return app
 }
 
+/**
+ * A refusal the Admin can show and act on: a 400 with the message, and a code
+ * such as STAGE_MISMATCH in the GraphQL error's extensions.code.
+ *
+ * @vtex/api's UserInputError always sets its own code to BAD_USER_INPUT, and
+ * GraphQL takes a response's extensions from the thrown error's extensions,
+ * so the code goes there. @vtex/api keeps extensions.code even when it
+ * withholds the rest of an error.
+ */
+export function userError(message: string, code: string): UserInputError {
+  return Object.assign(new UserInputError(message), { extensions: { code } })
+}
+
 export function toUserError(e: unknown): never {
   if (e instanceof WorkflowError) {
-    throw new UserInputError({ message: e.message, code: e.code })
+    throw userError(e.message, e.code)
   }
 
   throw e

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-11-25
+
+### Fixed
+
+- Refusals in the Admin now carry their own code, such as `STAGE_MISMATCH` or `APPROVAL_FAILED`, in the GraphQL error's `extensions.code`. Before, `@vtex/api` replaced every one with `BAD_USER_INPUT`.
+
 ## [0.3.2] - 2026-11-24
 
 ### Fixed
