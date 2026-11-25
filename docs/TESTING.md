@@ -22,9 +22,10 @@ Reviewed against the VTEX IO track of https://github.com/vtex/skills. Version 0.
 
 ```bash
 yarn lint                        # 0 errors; 21 warnings for accepted `any` types
-yarn test                        # 219 tests (backend and React helpers)
+yarn test                        # 247 tests (backend, review resolvers and React helpers)
 cd react && npx tsc --noEmit     # no errors
 cd node && npx tsc --noEmit      # no errors
+cd node/__tests__ && npx tsc --noEmit -p .   # no errors (the tests)
 ```
 
 ## What was tested, and how
