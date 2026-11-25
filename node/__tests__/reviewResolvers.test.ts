@@ -1,3 +1,5 @@
+import { GraphQLError } from 'graphql'
+
 import type {
   Application,
   ApplicationEvent,
@@ -20,14 +22,15 @@ const TOKEN = `x.${Buffer.from(
 ).toString('base64url')}.y`
 
 /**
- * Workflow refusals reach the Admin as a UserInputError with the workflow's
- * message. @vtex/api 7.6 replaces the workflow's own code with BAD_USER_INPUT,
- * so the message is what identifies the refusal.
+ * Workflow refusals reach the Admin as a 400 UserInputError with the
+ * workflow's message, and its code in extensions.code, where GraphQL sends it.
  */
-function userError(message: string) {
+function userError(message: string, code: string) {
   return expect.objectContaining({
     name: 'UserInputError',
+    status: 400,
     message: expect.stringContaining(message),
+    extensions: { code },
   })
 }
 
@@ -299,6 +302,31 @@ describe('review queries', () => {
   })
 })
 
+describe('refusals in the GraphQL response', () => {
+  it('carry the workflow code in extensions.code, where the Admin can read it', async () => {
+    const { ctx } = fakeContext([application()])
+    const thrown = await reviewMutations
+      .decideStage(
+        null,
+        { id: 'app-1', stageId: 'final-approval', decision: 'PASS' },
+        ctx
+      )
+      .catch((e: Error) => e)
+
+    // How GraphQL wraps a resolver's error before @vtex/api formats it
+    const wrapped = new GraphQLError(
+      (thrown as Error).message,
+      undefined,
+      undefined,
+      undefined,
+      ['decideStage'],
+      thrown as Error
+    )
+
+    expect(wrapped.extensions).toEqual({ code: 'STAGE_MISMATCH' })
+  })
+})
+
 describe('document review and passing a stage', () => {
   it('accepts both documents, then passes Document review, saving and recording each step as the reviewer', async () => {
     const { ctx, stored, events } = fakeContext([
@@ -370,7 +398,9 @@ describe('document review and passing a stage', () => {
         { id: 'app-1', stageId: 'document-review', decision: 'PASS' },
         ctx
       )
-    ).rejects.toThrow(userError('Accept every document'))
+    ).rejects.toThrow(
+      userError('Accept every document', 'DOCUMENTS_NOT_ACCEPTED')
+    )
     await expect(
       reviewMutations.reviewDocument(
         null,
@@ -382,7 +412,7 @@ describe('document review and passing a stage', () => {
         },
         ctx
       )
-    ).rejects.toThrow(userError('The application is now at'))
+    ).rejects.toThrow(userError('The application is now at', 'STAGE_MISMATCH'))
     expect(md.putDocument).not.toHaveBeenCalled()
     expect(events).toEqual([])
   })
@@ -425,7 +455,9 @@ describe('document review and passing a stage', () => {
         },
         ctx
       )
-    ).rejects.toThrow(userError('Give the applicant a reason'))
+    ).rejects.toThrow(
+      userError('Give the applicant a reason', 'REASON_REQUIRED')
+    )
   })
 
   it('refuses to act on an application that is already decided', async () => {
@@ -437,7 +469,7 @@ describe('document review and passing a stage', () => {
         { id: 'app-1', stageId: 'document-review', decision: 'PASS' },
         ctx
       )
-    ).rejects.toThrow(userError('already approved'))
+    ).rejects.toThrow(userError('already approved', 'NOT_IN_REVIEW'))
   })
 })
 
@@ -482,7 +514,9 @@ describe('verification and KYC decisions', () => {
         { id: 'app-1', stageId: 'document-review' },
         ctx
       )
-    ).rejects.toThrow(userError("doesn't run a verification"))
+    ).rejects.toThrow(
+      userError("doesn't run a verification", 'NOT_VERIFICATION_STAGE')
+    )
     expect(md.putDocument).not.toHaveBeenCalled()
   })
 
@@ -509,7 +543,7 @@ describe('verification and KYC decisions', () => {
         { id: 'app-1', stageId: 'compliance-check', decision: 'PASS' },
         ctx
       )
-    ).rejects.toThrow(userError('can only be rejected'))
+    ).rejects.toThrow(userError('can only be rejected', 'VERIFICATION_FAILED'))
   })
 
   it('needs a decision on a check that needs review, then passes once it is accepted', async () => {
@@ -528,7 +562,9 @@ describe('verification and KYC decisions', () => {
         { id: 'app-1', stageId: 'compliance-check', decision: 'PASS' },
         ctx
       )
-    ).rejects.toThrow(userError('needs a manual review first'))
+    ).rejects.toThrow(
+      userError('needs a manual review first', 'KYC_DECISION_REQUIRED')
+    )
 
     await reviewMutations.decideKycCheck(
       null,
@@ -595,7 +631,9 @@ describe('verification and KYC decisions', () => {
         },
         ctx
       )
-    ).rejects.toThrow(userError('Explain the decision in a note'))
+    ).rejects.toThrow(
+      userError('Explain the decision in a note', 'NOTE_REQUIRED')
+    )
   })
 })
 
@@ -727,7 +765,9 @@ describe('final approval', () => {
         { id: 'app-1', stageId: 'final-approval', decision: 'PASS' },
         ctx
       )
-    ).rejects.toThrow(userError("couldn't create the organization"))
+    ).rejects.toThrow(
+      userError("couldn't create the organization", 'APPROVAL_FAILED')
+    )
 
     const app = stored('app-1')
 

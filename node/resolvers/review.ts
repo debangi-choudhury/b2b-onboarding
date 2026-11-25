@@ -35,6 +35,7 @@ import {
   repository,
   stageConfig,
   toUserError,
+  userError,
   verifier,
 } from './shared'
 
@@ -96,11 +97,10 @@ async function approve(ctx: Context, app: Application, note: unknown) {
       failedApproval(app, message, who, new Date())
     )
 
-    throw new UserInputError({
-      message:
-        "B2B Organizations couldn't create the organization. The application stays at its stage, so you can try again.",
-      code: 'APPROVAL_FAILED',
-    })
+    throw userError(
+      "B2B Organizations couldn't create the organization. The application stays at its stage, so you can try again.",
+      'APPROVAL_FAILED'
+    )
   }
 }
 
